@@ -33,11 +33,6 @@ def load_static_data(dataset_name, device="cpu"):
     def loads_file(fn):
         return torch.load(os.path.join(static_dir_path, fn), map_location=device)
 
-    # Load border mask, 1. if node is part of border, else 0.
-    border_mask_np = np.load(os.path.join(static_dir_path, "border_mask.npy"))
-    border_mask = torch.tensor(border_mask_np, dtype=torch.float32,
-                               device=device).flatten(0, 1).unsqueeze(1)  # (N_grid, 1)
-
     grid_static_features = loads_file("grid_features.pt")  # (N_grid, d_grid_static)
 
     # Load step diff stats
@@ -58,7 +53,6 @@ def load_static_data(dataset_name, device="cpu"):
         device=device)  # (d_f,)
 
     return {
-        "border_mask": border_mask,
         "grid_static_features": grid_static_features,
         "step_diff_mean": step_diff_mean,
         "step_diff_std": step_diff_std,

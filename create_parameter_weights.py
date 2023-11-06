@@ -5,19 +5,15 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from neural_lam import constants
 from neural_lam.weather_dataset import WeatherDataset
 
 
 def main():
     parser = ArgumentParser(description='Training arguments')
-    parser.add_argument('--dataset', type=str, default="meps_example",
-                        help='Dataset to compute weights for (default: meps_example)')
+    parser.add_argument('--dataset', type=str, default="straka",
+                        help='Dataset to compute weights for (default: straka)')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='Batch size when iterating over the dataset')
-    parser.add_argument(
-        '--step_length', type=int, default=3,
-        help='Step length in hours to consider single time step (default: 3)')
     parser.add_argument('--n_workers', type=int, default=4,
                         help='Number of workers in data loader (default: 4)')
     args = parser.parse_args()
@@ -26,11 +22,7 @@ def main():
 
     # Define weights for each vertical level and parameter
     # Create parameter weights based on height
-    w_list = []
-    for pw in constants.param_weights.values():
-        for lw in constants.level_weights.values():
-            w_list.append(pw * lw)
-
+    w_list = [1]
     w_list = np.array(w_list)
 
     print("Saving parameter weights...")

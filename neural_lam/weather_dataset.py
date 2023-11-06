@@ -12,12 +12,12 @@ from neural_lam import constants, utils
 class WeatherDataset(torch.utils.data.Dataset):
     """
     For our dataset:
-    N_t = 1h
-    N_x = 582
-    N_y = 390
-    N_grid = 582*390 = 226980
-    d_features = 8(features) * 7(vertical model levels) = 56
-    d_forcing = 0 #TODO: extract incoming radiation from KENDA
+    N_t = 10s
+    N_members = 125
+    N_x = 2632
+    N_y = 128
+    N_grid = 2632*128 = 336896
+    d_features = 1
     """
 
     def __init__(self, dataset_name, split="train", standardize=True, subset=False):
@@ -26,12 +26,14 @@ class WeatherDataset(torch.utils.data.Dataset):
         assert split in ("train", "val", "test"), "Unknown dataset split"
         self.sample_dir_path = os.path.join("data", dataset_name, "samples", split)
 
-        sample_paths = sorted(glob.glob(os.path.join(self.sample_dir_path, "laf*.nc")))
-        self.sample_names = sorted([path.split("/")[-1][3:-8] for path in sample_paths])
-        # Now on form "yyymmddhh_mbrXXX"
+        zarr_files = glob.glob(os.path.join(self.sample_dir_path, "*.zarr"))
+        if not zarr_files:
+            raise ValueError("No .zarr files found in directory")
+        self.sample_archive = xr.open_zarr(zarr_files[0], consolidated=True)
 
         if subset:
-            self.sample_names = self.sample_names[:50]  # Limit to 50 samples
+            self.sample_archive = self.sample_archive.isel(
+                member=[0, 1])
 
         # Set up for standardization
         self.standardize = standardize
@@ -44,38 +46,24 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.split = split
 
     def __len__(self):
-        num_files = constants.train_horizon if self.split == "train" else constants.eval_horizon
-        return len(self.sample_names) - num_files + 1
+        num_steps = constants.train_horizon if self.split == "train" else constants.eval_horizon
+        total_time = self.sample_archive.time.size - num_steps + 1
+        return total_time * len(self.sample_archive.member)
 
     def __getitem__(self, idx):
-        # === Sample ===
-        sample = torch.tensor([])
-        num_files = constants.train_horizon if self.split == "train" else constants.eval_horizon
-        for i in range(num_files):
-            sample_name = self.sample_names[idx + i]
-            sample_path = os.path.join(
-                self.sample_dir_path,
-                f"laf{sample_name}_extr.nc")
-            try:
-                ds = xr.load_dataset(sample_path)[constants.param_names_short]
-            except ValueError:
-                print(f"Failed to load {sample_path}")
+        num_steps = constants.train_horizon if self.split == "train" else constants.eval_horizon
+        total_time = self.sample_archive.time.size - num_steps + 1
+        member_idx = idx // total_time
+        time_idx = idx % total_time
 
-            # Select the data for the specified vertical levels
-            selected_data = ds.sel(z_1=constants.vertical_levels)
+        # Select a single member and a specific time step
+        sample = self.sample_archive.isel(
+            member=member_idx, time=slice(
+                time_idx, time_idx + num_steps))
 
-            # Now, you can create separate data variables for each vertical level and
-            # each variable
-            for var in selected_data.data_vars:
-                for level in constants.vertical_levels:
-                    new_var_name = f"{var}_z{level}"
-                    selected_data[new_var_name] = selected_data[var].sel(z_1=level)
+        da = sample.to_array().transpose("time", "ncells", "height", "variable").values
 
-            da = selected_data.drop_dims("z_1").to_array().transpose(
-                "time", "x_1", "y_1", "variable").values
-
-            sample = torch.cat((torch.tensor(da, dtype=torch.float32), sample))
-            # (N_t', N_x, N_y, d_features')
+        sample = torch.tensor(da, dtype=torch.float32)
 
         # Flatten spatial dim
         sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
