@@ -11,18 +11,12 @@ def plot_error_map(errors, title=None, step_length=1):
     Plot a line plot of errors of a single variable at different predictions horizons
     errors: (pred_steps,)
     """
-    
+
     errors_np = errors.cpu().numpy()  # (pred_steps, d_f)
-    
     pred_steps = int(errors_np.shape[0])
+    fig, ax = plt.subplots(figsize=constants.fig_size)
 
-    # Normalize all errors to [0,1] for color map
-    max_error = errors_np.max()  # scalar
-    errors_norm = errors_np / max_error
-
-    fig, ax = plt.subplots(figsize=(15, 10))
-
-    ax.plot(errors_norm, color="darkred")
+    ax.plot(errors_np, color="darkred")
 
     # Ticks and labels
     label_size = 15
@@ -35,7 +29,6 @@ def plot_error_map(errors, title=None, step_length=1):
 
     if title:
         ax.set_title(title, size=15)
-    
 
     return fig
 
@@ -92,9 +85,13 @@ def plot_spatial_error(error, title=None, vrange=None):
     else:
         vmin, vmax = vrange
 
+    fig_size = constants.fig_size
+    fig_size = list(fig_size)
+    fig_size[1] /= 2
+    fig_size = tuple(fig_size)
     fig, ax = plt.subplots(figsize=constants.fig_size)
 
-    error_grid = error.reshape(*constants.grid_shape).cpu().numpy()
+    error_grid = np.transpose(error.reshape(*constants.grid_shape).cpu().numpy())
     error_grid = np.flipud(error_grid)  # Flip the data along the vertical axis
     contour_set = ax.contourf(
         error_grid,
