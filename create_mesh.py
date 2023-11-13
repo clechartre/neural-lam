@@ -9,10 +9,11 @@ import scipy.spatial
 import torch
 import torch_geometric as pyg
 from torch_geometric.utils.convert import from_networkx
+from neural_lam import constants
 
 
 def plot_graph(graph, title=None):
-    fig, axis = plt.subplots(figsize=(8, 8), dpi=200)  # W,H
+    fig, axis = plt.subplots(figsize=constants.fig_size, dpi=200)  # W,H
     edge_index = graph.edge_index
     pos = graph.pos
 
@@ -29,6 +30,11 @@ def plot_graph(graph, title=None):
     degrees = pyg.utils.degree(edge_index[1], num_nodes=pos.shape[0]).cpu().numpy()
     edge_index = edge_index.cpu().numpy()
     pos = pos.cpu().numpy()
+
+    # Check if the number of nodes exceeds 100
+    if pos.shape[0] > constants.zoom_limit:
+        # If it does, only include the first 100 nodes
+        pos = pos[:constants.zoom_limit]
 
     # Plot edges
     from_pos = pos[edge_index[0]]  # (M/2, 2)
@@ -178,9 +184,11 @@ def main():
     for lev in range(1, mesh_levels + 1):
         n = int(nleaf / (nx**lev))
         g = mk_2d_graph(xy, n, n)
+        plot_graph(from_networkx(g), title=f"Mesh graph, level {lev}")
         if args.plot:
-            plot_graph(from_networkx(g), title=f"Mesh graph, level {lev}")
             plt.show()
+        else:
+            plt.savefig(os.path.join(graph_dir_path, f"mesh_graph_{lev}.png"))
 
         G.append(g)
 
@@ -250,12 +258,23 @@ def main():
             up_graphs.append(pyg_up)
             down_graphs.append(pyg_down)
 
+            plot_graph(pyg_down, title=f"Down graph, {from_level} -> {to_level}")
             if args.plot:
-                plot_graph(pyg_down, title=f"Down graph, {from_level} -> {to_level}")
                 plt.show()
+            else:
+                plt.savefig(
+                    os.path.join(
+                        graph_dir_path,
+                        f"mesh_graph_{from_level}_{to_level}.png"))
 
-                plot_graph(pyg_down, title=f"Up graph, {to_level} -> {from_level}")
+            plot_graph(pyg_up, title=f"Up graph, {to_level} -> {from_level}")
+            if args.plot:
                 plt.show()
+            else:
+                plt.savefig(
+                    os.path.join(
+                        graph_dir_path,
+                        f"mesh_graph_{to_level}_{from_level}.png"))
 
         # Save up and down edges
         save_edges_list(up_graphs, "mesh_up", graph_dir_path)
@@ -307,9 +326,11 @@ def main():
         m2m_graphs = [pyg_m2m]
         mesh_pos = [pyg_m2m.pos.to(torch.float32)]
 
+        plot_graph(pyg_m2m, title="Mesh-to-mesh")
         if args.plot:
-            plot_graph(pyg_m2m, title="Mesh-to-mesh")
             plt.show()
+        else:
+            plt.savefig(os.path.join(graph_dir_path, "mesh2mesh_graph.png"))
 
     # Save m2m edges
     save_edges_list(m2m_graphs, "m2m", graph_dir_path)
@@ -381,9 +402,11 @@ def main():
 
     pyg_g2m = from_networkx(G_g2m)
 
+    plot_graph(pyg_g2m, title="Grid-to-mesh")
     if args.plot:
-        plot_graph(pyg_g2m, title="Grid-to-mesh")
         plt.show()
+    else:
+        plt.savefig(os.path.join(graph_dir_path, "grid2mesh_graph.png"))
 
     #
     # Mesh2Grid
@@ -415,9 +438,11 @@ def main():
                                                          ordering='sorted')
     pyg_m2g = from_networkx(G_m2g_int)
 
+    plot_graph(pyg_m2g, title="Mesh-to-grid")
     if args.plot:
-        plot_graph(pyg_m2g, title="Mesh-to-grid")
         plt.show()
+    else:
+        plt.savefig(os.path.join(graph_dir_path, "mesh2grid_graph.png"))
 
     # Save g2m and m2g everything
     # g2m

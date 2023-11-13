@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
 
     # Open the .zarr archive
-    ds = xr.open_dataset(constants.example_file)
+    ds = xr.open_dataset(constants.example_file).isel(height=slice(0, constants.grid_shape[1]))
 
     # Get the dimensions of the dataset
     x_dim, y_dim = ds.dims[args.xdim], ds.dims[args.ydim]
