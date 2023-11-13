@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import torch
 from lightning_fabric.utilities import seed
 from pytorch_lightning.utilities import rank_zero_only
-from torch.utils.data import DataLoader, Dataset
 
 import wandb
 from neural_lam import constants, utils
@@ -20,60 +19,6 @@ MODELS = {
     "hi_lam": HiLAM,
     "hi_lam_parallel": HiLAMParallel,
 }
-
-
-class DummyModel(pl.LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.layer = torch.nn.Linear(100, 10)
-
-    def forward(self, x):
-        return self.layer(x)
-
-    def training_step(self, batch, batch_idx):
-        loss = self(batch).sum()
-        self.log('train_loss', loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        loss = self(batch).sum()
-        self.log('val_loss', loss)
-        self.log('val_mean_loss', loss)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=0.01)
-
-
-class RandomDataset(Dataset):
-    def __init__(self, size, length):
-        self.len = length
-        self.data = torch.randn(length, size)
-
-    def __getitem__(self, index):
-        return self.data[index]
-
-    def __len__(self):
-        return self.len
-
-
-class DummyDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 64):
-        super().__init__()
-        self.batch_size = batch_size
-
-    def prepare_data(self):
-        pass
-
-    def setup(self, stage=None):
-        self.train_dataset = RandomDataset(100, 10000)
-        self.val_dataset = RandomDataset(100, 1000)
-
-    def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size)
-
-    def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
 
 @rank_zero_only
@@ -203,9 +148,6 @@ def main():
     # Load model parameters Use new args for model
     model_class = MODELS[args.model]
     model = model_class(args)
-
-    data_module = DummyDataModule()
-    model = DummyModel()
 
     result = init_wandb(args)
     if result is not None:
