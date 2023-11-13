@@ -16,5 +16,5 @@ export OMP_NUM_THREADS=16
 
 # Run the script with torchrun
 srun -ul --gpus-per-task=1 python train_model.py \
-    --dataset "straka" --subset_ds 0 --n_workers 8 --batch_size 8 --model "graph_lam" \
-    --epochs 200 --val_interval 10
+    --dataset "straka" --n_workers 8 --batch_size 1 --model "graph_lam" \
+    --epochs 3 --val_interval 3

@@ -7,6 +7,7 @@ dependencies:
   - Cartopy
   - dask
   - ipython
+  - imageio
   - matplotlib
   - networkx
   - numpy

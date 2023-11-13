@@ -15,5 +15,5 @@ export OMP_NUM_THREADS=16
 
 # Run the script with torchrun
 srun -ul --gpus-per-task=1 python train_model.py \
-    --load "saved_models/graph_lam-4x64-11_02_02_40_27/min_val_loss.ckpt" \
-    --dataset "straka" --eval="test" --subset_ds 1 --n_workers 8 --batch_size 8 --model "graph_lam"
+    --load "saved_models/graph_lam-4x64-11_13_14_45_37/min_val_loss.ckpt" \
+    --dataset "straka" --eval="test" --subset_ds 1 --n_workers 8 --batch_size 1 --model "graph_lam"
