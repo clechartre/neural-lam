@@ -30,6 +30,15 @@ class WeatherDataset(torch.utils.data.Dataset):
         if not zarr_files:
             raise ValueError("No .zarr files found in directory")
         self.sample_archive = xr.open_zarr(zarr_files[0], consolidated=True)
+        self.sample_archive = self.sample_archive.isel(
+            time=slice(
+                constants.init_time,
+                constants.eval_horizon +
+                constants.init_time),
+            height=slice(
+                constants.grid_shape[1],
+                self.sample_archive.dims
+                ['height']))
 
         if subset:
             self.sample_archive = self.sample_archive.isel(
@@ -61,7 +70,8 @@ class WeatherDataset(torch.utils.data.Dataset):
             member=member_idx, time=slice(
                 time_idx, time_idx + num_steps))
 
-        da = sample.to_array().transpose("time", "ncells", "height", "variable").values
+        da = sample.to_array().transpose(
+            "time", "ncells", "height", "variable").sortby("time").values
 
         sample = torch.tensor(da, dtype=torch.float32)
 

@@ -1,5 +1,7 @@
+import glob
 import os
 
+import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import pytorch_lightning as pl
@@ -212,6 +214,7 @@ class ARModel(pl.LightningModule):
                                reduction="none")  # (B, pred_steps, N_grid, d_f)
 
         mean_error = torch.mean(entry_loss, dim=2)  # (B, pred_steps, d_f)
+
         return mean_error
 
     def all_gather_cat(self, tensor_to_gather):
@@ -233,8 +236,10 @@ class ARModel(pl.LightningModule):
         Run validation on single batch
         """
         prediction, target = self.common_step(batch)  # (B, pred_steps, N_grid, d_f)
+
         time_step_loss = torch.mean(self.weighted_loss(prediction,
                                                        target), dim=0)  # (time_steps-1)
+
         mean_loss = torch.mean(time_step_loss)
 
         # Log loss per time step forward and mean
@@ -257,6 +262,7 @@ class ARModel(pl.LightningModule):
         if self.trainer.is_global_zero:
             val_mae_total = torch.mean(val_mae_tensor, dim=0)  # (pred_steps, d_f)
             val_mae_rescaled = val_mae_total * self.data_std  # (pred_steps, d_f)
+
             if not self.trainer.sanity_checking:
                 # Don't log this during sanity checking
                 mae_fig = vis.plot_error_map(val_mae_rescaled, title="Validation MAE",
@@ -264,7 +270,6 @@ class ARModel(pl.LightningModule):
                 wandb.log({"val_mae": wandb.Image(mae_fig)})
                 plt.close("all")
 
-        torch.distributed.barrier()  # Wait for all ranks to finish
         self.val_maes.clear()  # Free memory
 
     def test_step(self, batch, batch_idx):
@@ -364,17 +369,16 @@ class ARModel(pl.LightningModule):
 
         test_mae_tensor = self.all_gather_cat(
             torch.cat(self.test_maes, dim=0))  # (N_test, pred_steps, d_f)
-        # test_mse_tensor = self.all_gather_cat(
-        #     torch.cat(self.test_mses, dim=0))  # (N_test, pred_steps, d_f)
+        test_mse_tensor = self.all_gather_cat(
+            torch.cat(self.test_mses, dim=0))  # (N_test, pred_steps, d_f)
 
         if self.trainer.is_global_zero:
             test_mae_rescaled = torch.mean(test_mae_tensor,
                                            dim=0) * self.data_std  # (pred_steps, d_f)
 
-            # BUG: does that work?
             test_rmse_rescaled = torch.sqrt(
                 torch.mean(
-                    test_mae_tensor,
+                    test_mse_tensor,
                     dim=0)) * self.data_std  # (pred_steps, d_f)
 
             # Create plots only for these instances
@@ -400,7 +404,6 @@ class ARModel(pl.LightningModule):
             np.savetxt(os.path.join(wandb.run.dir, "test_rmse.csv"),
                        test_rmse_rescaled.cpu().numpy(), delimiter=",")
 
-        torch.distributed.barrier()  # Wait for all ranks to finish
         self.test_maes.clear()  # Free memory
 
         # Plot spatial loss maps
@@ -441,5 +444,15 @@ class ARModel(pl.LightningModule):
                 os.path.join(
                     wandb.run.dir,
                     'mean_spatial_loss.pt'))
-        torch.distributed.barrier()  # Wait for all ranks to finish
+
+            dir_path = f"{wandb.run.dir}/media/images"
+            for param in constants.param_names_short + ["test_loss"]:
+                # Get all the images for the current parameter
+                images = sorted(glob.glob(f'{dir_path}/{param}_*'))
+                # Generate the GIF
+                with imageio.get_writer(f'{dir_path}/{param}.gif', mode='I', duration=0.2) as writer:
+                    for filename in images:
+                        image = imageio.imread(filename)
+                        writer.append_data(image)
+
         self.spatial_loss_maps.clear()

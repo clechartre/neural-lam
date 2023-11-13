@@ -23,15 +23,19 @@ param_units = [
     'K',
 ]
 # Projection and grid
-grid_shape = (2632, 128)  # (x, y)
+grid_shape = (2632, 64)  # original (x, y)
 
-# Plotting
-fig_size = (9, 11)
-example_file = "data/straka/samples/test/data_test.zarr"
+# Zoom for graph plotting
+zoom_limit = 128
 
 # Time step prediction during training / prediction (eval)
+init_time = 20 # 10s steps (after bubble drop)
 train_horizon = 3  # 10s steps (t-1 + t -> t+1)
-eval_horizon = 241  # 10s steps (autoregressive)
+eval_horizon = 80  # 10s steps (autoregressive)
+
+# Plotting
+fig_size = (15, 10)
+example_file = "data/straka/samples/test/data_test.zarr"
 
 # Log prediction error for these time steps forward
 val_step_log_errors = np.arange(1, eval_horizon - 1, 10)
