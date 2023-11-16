@@ -1,5 +1,6 @@
 import glob
 import os
+import random
 
 import imageio
 import matplotlib.pyplot as plt
@@ -39,6 +40,7 @@ class ARModel(pl.LightningModule):
             self.register_buffer(static_data_name, static_data_tensor, persistent=False)
 
         # MSE loss, need to do reduction ourselves to get proper weighting
+        self.loss_name = args.loss
         if args.loss == "mse":
             self.loss = nn.MSELoss(reduction="none")
 
@@ -54,7 +56,7 @@ class ARModel(pl.LightningModule):
         self.register_buffer("state_weight", state_weight, persistent=False)
 
         self.step_length = args.step_length  # Number of hours per pred. step
-        self.val_maes = []
+        self.val_errs = []
         self.test_maes = []
         self.test_mses = []
 
@@ -67,8 +69,6 @@ class ARModel(pl.LightningModule):
 
         # For storing spatial loss maps during evaluation
         self.spatial_loss_maps = []
-
-        self.plot_created = False
 
     @pl.utilities.rank_zero_only
     def log_image(self, name, img):
@@ -152,8 +152,11 @@ class ARModel(pl.LightningModule):
 
         entry_loss = self.loss(prediction, target)  # (B, pred_steps, N_grid, d_f)
 
-        # (B, pred_steps, N_grid), weighted sum over features
-        grid_node_loss = torch.mean(entry_loss * self.state_weight, dim=-1)
+        if constants.weighted_loss:
+            # (B, pred_steps, N_grid), weighted sum over features
+            grid_node_loss = torch.mean(entry_loss * self.state_weight, dim=-1)
+        else:
+            grid_node_loss = torch.mean(entry_loss, dim=-1)
 
         if not reduce_spatial_dim:
             return grid_node_loss  # (B, pred_steps, N_grid)
@@ -199,7 +202,7 @@ class ARModel(pl.LightningModule):
             sync_dist=True)
         return batch_loss
 
-    def per_var_error(self, prediction, target, error="mae"):
+    def per_var_error(self, prediction, target, error="mse"):
         """
         Computed MAE/MSE per variable and time step
         prediction/target: (B, pred_steps, N_grid, d_f)
@@ -247,8 +250,9 @@ class ARModel(pl.LightningModule):
                         for step in self.val_step_log_errors}
         val_log_dict["val_mean_loss"] = mean_loss
 
-        maes = self.per_var_error(prediction, target)  # (B, pred_steps, d_f)
-        self.val_maes.append(maes)
+        errs = self.per_var_error(
+            prediction, target, error=self.loss_name)  # (B, pred_steps, d_f)
+        self.val_errs.append(errs)
 
         self.log_dict(val_log_dict, on_step=False, on_epoch=True, sync_dist=True)
 
@@ -256,21 +260,22 @@ class ARModel(pl.LightningModule):
         """
         Compute val metrics at the end of val epoch
         """
-        val_mae_tensor = self.all_gather_cat(torch.cat(
-            self.val_maes, dim=0))  # (N_val, pred_steps, d_f)
+        val_err_tensor = self.all_gather_cat(torch.cat(
+            self.val_errs, dim=0))  # (N_val, pred_steps, d_f)
 
         if self.trainer.is_global_zero:
-            val_mae_total = torch.mean(val_mae_tensor, dim=0)  # (pred_steps, d_f)
-            val_mae_rescaled = val_mae_total * self.data_std  # (pred_steps, d_f)
+            val_err_total = torch.mean(val_err_tensor, dim=0)  # (pred_steps, d_f)
+            val_err_rescaled = val_err_total * self.data_std  # (pred_steps, d_f)
 
             if not self.trainer.sanity_checking:
                 # Don't log this during sanity checking
-                mae_fig = vis.plot_error_map(val_mae_rescaled, title="Validation MAE",
-                                             step_length=self.step_length)
-                wandb.log({"val_mae": wandb.Image(mae_fig)})
+                val_err_fig = vis.plot_error_map(
+                    val_err_rescaled, title="Validation MAE",
+                    step_length=self.step_length)
+                wandb.log({"val_err": wandb.Image(val_err_fig)})
                 plt.close("all")
 
-        self.val_maes.clear()  # Free memory
+        self.val_errs.clear()  # Free memory
 
     def test_step(self, batch, batch_idx):
         """
@@ -291,7 +296,8 @@ class ARModel(pl.LightningModule):
         self.log_dict(test_log_dict, on_step=False, on_epoch=True, sync_dist=True)
 
         # For error maps
-        maes = self.per_var_error(prediction, target)  # (B, pred_steps, d_f)
+        maes = self.per_var_error(
+            prediction, target, error="mae")  # (B, pred_steps, d_f)
         self.test_maes.append(maes)
         mses = self.per_var_error(
             prediction, target, error="mse")  # (B, pred_steps, d_f)
@@ -303,53 +309,53 @@ class ARModel(pl.LightningModule):
         log_spatial_losses = spatial_loss[:, self.val_step_log_errors - 1]
         self.spatial_loss_maps.append(log_spatial_losses)  # (B, N_log, N_grid)
 
-        if self.global_rank == 0 and not self.plot_created:
-            self.plot_created = True
-            # Plot example predictions
-            if self.plotted_examples < self.n_example_pred:
-                n_additional_examples = min(prediction.shape[0], self.n_example_pred
-                                            - self.plotted_examples)
+        if self.global_rank == 0 and self.plotted_examples < self.n_example_pred and random.random() < 0.05:
+            print(
+                f"Plotting example {self.plotted_examples + 1} of {self.n_example_pred}")
+            n_additional_examples = min(prediction.shape[0], self.n_example_pred
+                                        - self.plotted_examples)
 
-                # Rescale to original data scale
-                prediction_rescaled = prediction * self.data_std + self.data_mean
-                target_rescaled = target * self.data_std + self.data_mean
-                # Iterate over the examples
-                for pred_slice, target_slice in zip(
-                        prediction_rescaled[:n_additional_examples],
-                        target_rescaled[:n_additional_examples]):
-                    self.plotted_examples += 1  # Increment already here
-                    # Each slice is (pred_steps, N_grid, d_f)
-                    # Iterate over variables
-                    for var_name, var_unit in zip(
-                            constants.param_names_short, constants.param_units):
-                        # Calculate var_vrange for each level
-                        var_vmin = min(
-                            pred_slice[:, :, 0].min(),
-                            target_slice[:, :, 0].min())
-                        var_vmax = max(
-                            pred_slice[:, :, 0].max(),
-                            target_slice[:, :, 0].max())
-                        var_vrange = (var_vmin, var_vmax)
-                        # Iterate over time steps
-                        for t_i, (pred_t, target_t) in enumerate(
-                                zip(pred_slice, target_slice), start=1):
-                            # This will add leading zeros to make t_i at least 2
-                            # digits long
-                            t_i_str = str(t_i * 10).zfill(4)
-                            title = f"{var_name} ({var_unit}), t={t_i_str} s"
+            # Rescale to original data scale
+            prediction_rescaled = prediction * self.data_std + self.data_mean
+            target_rescaled = target * self.data_std + self.data_mean
+            # Iterate over the examples
+            for pred_slice, target_slice in zip(
+                    prediction_rescaled[:n_additional_examples],
+                    target_rescaled[:n_additional_examples]):
+                self.plotted_examples += 1  # Increment already here
+                # Each slice is (pred_steps, N_grid, d_f)
+                # Iterate over variables
+                for var_name, var_unit in zip(
+                        constants.param_names_short, constants.param_units):
+                    # Calculate var_vrange for each level
+                    var_vmin = min(
+                        pred_slice[:, :, 0].min(),
+                        target_slice[:, :, 0].min())
+                    var_vmax = max(
+                        pred_slice[:, :, 0].max(),
+                        target_slice[:, :, 0].max())
+                    var_vrange = (var_vmin, var_vmax)
+                    # Iterate over time steps
+                    for t_i, (pred_t, target_t) in enumerate(
+                            zip(pred_slice, target_slice), start=1):
+                        # This will add leading zeros to make t_i at least 2
+                        # digits long
+                        t_i_str = str(t_i * 10).zfill(4)
+                        title = f"{var_name} ({var_unit}), member={self.plotted_examples} t={t_i_str} s"
 
-                            var_fig = vis.plot_prediction(
-                                pred_t[:, 0], target_t[:, 0],
-                                title=title,
-                                vrange=var_vrange
-                            )
-                            wandb.log(
-                                {f"{var_name}_t_{t_i_str}": wandb.Image(var_fig)})
+                        var_fig = vis.plot_prediction(
+                            pred_t[:, 0], target_t[:, 0],
+                            title=title,
+                            vrange=var_vrange
+                        )
+                        wandb.log(
+                            {f"{var_name}_m_{self.plotted_examples}_t_{t_i_str}": wandb.Image(var_fig)})
 
-                            # every 19th time step:
-                            if t_i % 19 == 0:
-                                plt.close("all")
+                        # every 19th time step:
+                        if t_i % 19 == 0:
+                            plt.close("all")
 
+                if constants.store_example_data:
                     # Save pred and target as .pt files
                     torch.save(pred_slice.cpu(), os.path.join(
                         wandb.run.dir, f'example_pred_{self.plotted_examples}.pt'))
@@ -383,10 +389,10 @@ class ARModel(pl.LightningModule):
 
             # Create plots only for these instances
             mae_fig = vis.plot_error_map(
-                test_mae_rescaled[self.val_step_log_errors],
+                test_mae_rescaled[self.val_step_log_errors - 1],
                 step_length=self.step_length)
             rmse_fig = vis.plot_error_map(
-                test_rmse_rescaled[self.val_step_log_errors],
+                test_rmse_rescaled[self.val_step_log_errors - 1],
                 step_length=self.step_length)
 
             wandb.log({  # Log png:s
@@ -419,7 +425,7 @@ class ARModel(pl.LightningModule):
             # Create plots and PDFs only for these instances
             loss_map_figs = [vis.plot_spatial_error(
                 mean_spatial_loss[i],
-                title=f"Test loss, t={val_step} ({self.step_length*val_step} h)")
+                title=f"Test loss, t={val_step}, ({self.step_length*val_step} h)")
                 for i, val_step in enumerate(self.val_step_log_errors)]
 
             # Log all to same wandb key, sequentially
@@ -438,22 +444,24 @@ class ARModel(pl.LightningModule):
                         pdf_loss_maps_dir,
                         f"loss_t{val_step}.pdf"))
 
-            # Save mean spatial loss as .pt file also
-            torch.save(
-                mean_spatial_loss.cpu(),
-                os.path.join(
-                    wandb.run.dir,
-                    'mean_spatial_loss.pt'))
+            if constants.store_example_data:
+                # Save mean spatial loss as .pt file also
+                torch.save(
+                    mean_spatial_loss.cpu(),
+                    os.path.join(
+                        wandb.run.dir,
+                        'mean_spatial_loss.pt'))
 
             dir_path = f"{wandb.run.dir}/media/images"
             for param in constants.param_names_short + ["test_loss"]:
-                # Get all the images for the current parameter
-                images = sorted(glob.glob(f'{dir_path}/{param}_*'))
-                # Generate the GIF
-                with imageio.get_writer(f'{dir_path}/{param}.gif', mode='I', duration=0.2) as writer:
-                    for filename in images:
-                        image = imageio.imread(filename)
-                        writer.append_data(image)
+                for member in range(1, self.n_example_pred + 1):
+                    # Get all the images for the current parameter
+                    images = sorted(glob.glob(f'{dir_path}/{param}_m_{member}_t_*.png'))
+                    # Generate the GIF
+                    with imageio.get_writer(f'{dir_path}/{param}_m_{member}.gif', mode='I', duration=1) as writer:
+                        for filename in images:
+                            image = imageio.imread(filename)
+                            writer.append_data(image)
 
         self.spatial_loss_maps.clear()
 
@@ -467,7 +475,7 @@ class ARModel(pl.LightningModule):
         # grid MLP was moved outside the encoder InteractionNet class
         if "g2m_gnn.grid_mlp.0.weight" in loaded_state_dict:
             replace_keys = list(filter(lambda key: key.startswith("g2m_gnn.grid_mlp"),
-                    loaded_state_dict.keys()))
+                                       loaded_state_dict.keys()))
             for old_key in replace_keys:
                 new_key = old_key.replace("g2m_gnn.grid_mlp", "encoding_grid_mlp")
                 loaded_state_dict[new_key] = loaded_state_dict[old_key]
