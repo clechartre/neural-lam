@@ -34,21 +34,32 @@ def print_eval(args_eval):
 
 
 @rank_zero_only
-def init_wandb(args, run_name=None):
-    if run_name is None:
+def init_wandb(args):
+    if args.resume_run is None:
         prefix = "subset-" if args.subset_ds else ""
         if args.eval:
             prefix = prefix + f"eval-{args.eval}-"
         run_name = f"{prefix}{args.model}-{args.processor_layers}x{args.hidden_dim}-"\
             f"{time.strftime('%m_%d_%H_%M_%S')}"
-    wandb.init(
-        project=constants.wandb_project,
-        name=run_name,
-        config=args,
-        resume='must' if run_name else None
-    )
-    logger = pl.loggers.WandbLogger(project=constants.wandb_project, name=run_name,
-                                    config=args)
+        wandb.init(
+            name=run_name,
+            project=constants.wandb_project,
+            config=args,
+        )
+        logger = pl.loggers.WandbLogger(project=constants.wandb_project, name=run_name,
+                                        config=args)
+    else:
+        wandb.init(
+            project=constants.wandb_project,
+            config=args,
+            id=args.resume_run,
+            resume='must'
+        )
+        logger = pl.loggers.WandbLogger(
+            project=constants.wandb_project,
+            id=args.resume_run,
+            config=args)
+        run_name = wandb.run.name
     return logger, run_name
 
 
@@ -85,7 +96,7 @@ def main():
     parser.add_argument('--load', type=str,
                         help='Path to load model parameters from (default: None)')
     parser.add_argument('--resume_run', type=str,
-                        help='Run name to resume (default: None)')
+                        help='Run ID to resume (default: None)')
     parser.add_argument(
         '--precision', type=str, default=32,
         help='Numerical precision to use for model (32/16/bf16) (default: 32)')
@@ -152,7 +163,7 @@ def main():
     model_class = MODELS[args.model]
     model = model_class(args)
 
-    result = init_wandb(args, run_name=args.resume_run)
+    result = init_wandb(args)
     if result is not None:
         logger, run_name = result
     else:
