@@ -3,7 +3,7 @@
 #SBATCH --mem=490G
 #SBATCH --output=lightning_logs/neurwp.out
 #SBATCH --error=lightning_logs/neurwp.err
-#SBATCH --nodes=3
+#SBATCH --nodes=4
 #SBATCH --gpus-per-node=4
 #SBATCH --ntasks-per-node=4
 #SBATCH --partition=a100-80gb
@@ -16,5 +16,7 @@ export OMP_NUM_THREADS=16
 
 # Run the script with torchrun
 srun -ul --gpus-per-task=1 python train_model.py \
+    --load saved_models/graph_lam-4x64-11_15_22_38_47/last.ckpt \
+    --resume_run wandb/run-20231116_151120-xihms1tr \
     --dataset "straka" --n_workers 8 --batch_size 1 --model "graph_lam" \
-    --epochs 20 --val_interval 5
+    --epochs 50 --val_interval 5

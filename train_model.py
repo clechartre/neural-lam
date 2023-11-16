@@ -34,17 +34,18 @@ def print_eval(args_eval):
 
 
 @rank_zero_only
-def init_wandb(args):
-    prefix = "subset-" if args.subset_ds else ""
-    if args.eval:
-        prefix = prefix + f"eval-{args.eval}-"
-    run_name = f"{prefix}{args.model}-{args.processor_layers}x{args.hidden_dim}-"\
-        f"{time.strftime('%m_%d_%H_%M_%S')}"
+def init_wandb(args, run_name=None):
+    if run_name is None:
+        prefix = "subset-" if args.subset_ds else ""
+        if args.eval:
+            prefix = prefix + f"eval-{args.eval}-"
+        run_name = f"{prefix}{args.model}-{args.processor_layers}x{args.hidden_dim}-"\
+            f"{time.strftime('%m_%d_%H_%M_%S')}"
     wandb.init(
         project=constants.wandb_project,
         name=run_name,
         config=args,
-        # mode="dryrun"
+        resume='must' if run_name else None
     )
     logger = pl.loggers.WandbLogger(project=constants.wandb_project, name=run_name,
                                     config=args)
@@ -83,6 +84,8 @@ def main():
                         help='batch size (default: 4)')
     parser.add_argument('--load', type=str,
                         help='Path to load model parameters from (default: None)')
+    parser.add_argument('--resume_run', type=str,
+                        help='Run name to resume (default: None)')
     parser.add_argument(
         '--precision', type=str, default=32,
         help='Numerical precision to use for model (32/16/bf16) (default: 32)')
@@ -149,7 +152,7 @@ def main():
     model_class = MODELS[args.model]
     model = model_class(args)
 
-    result = init_wandb(args)
+    result = init_wandb(args, run_name=args.resume_run)
     if result is not None:
         logger, run_name = result
     else:
