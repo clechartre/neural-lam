@@ -33,8 +33,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.sample_archive = self.sample_archive.isel(
             time=slice(
                 constants.init_time,
-                constants.eval_horizon +
-                constants.init_time),
+                constants.end_time),
             height=slice(
                 constants.grid_shape[1],
                 self.sample_archive.dims

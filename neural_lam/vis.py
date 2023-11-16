@@ -11,7 +11,6 @@ def plot_error_map(errors, title=None, step_length=1):
     Plot a line plot of errors of a single variable at different predictions horizons
     errors: (pred_steps,)
     """
-
     errors_np = errors.cpu().numpy()  # (pred_steps, d_f)
     pred_steps = int(errors_np.shape[0])
     fig, ax = plt.subplots(figsize=constants.fig_size)

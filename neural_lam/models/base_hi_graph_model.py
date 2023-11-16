@@ -2,8 +2,10 @@ import torch
 from torch import nn
 
 from neural_lam import utils
-from neural_lam.models.base_graph_model import BaseGraphModel
 from neural_lam.interaction_net import InteractionNet
+from neural_lam.models.base_graph_model import BaseGraphModel
+
+
 class BaseHiGraphModel(BaseGraphModel):
     """
     Base class for hierarchical graph models.
@@ -56,13 +58,13 @@ class BaseHiGraphModel(BaseGraphModel):
         # Instantiate GNNs
         # Init GNNs
         self.mesh_init_gnns = nn.ModuleList([InteractionNet(
-                edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
+            edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
             for edge_index in self.mesh_up_edge_index])
 
         # Read out GNNs
         self.mesh_read_gnns = nn.ModuleList([InteractionNet(
-                edge_index, args.hidden_dim, hidden_layers=args.hidden_layers,
-                update_edges=False)
+            edge_index, args.hidden_dim, hidden_layers=args.hidden_layers,
+            update_edges=False)
             for edge_index in self.mesh_down_edge_index])
 
     def get_num_mesh(self):
@@ -97,8 +99,8 @@ class BaseHiGraphModel(BaseGraphModel):
         # each of size (B, N_mesh[l], d_h)
         mesh_rep_levels = [mesh_rep] + [self.expand_to_batch(
             emb(node_static_features), batch_size) for
-                emb, node_static_features in
-                zip(list(self.mesh_embedders)[1:], list(self.mesh_static_features)[1:])]
+            emb, node_static_features in
+            zip(list(self.mesh_embedders)[1:], list(self.mesh_static_features)[1:])]
 
         # - EMBEDD EDGES -
         # Embedd edges, expand with batch dimension
@@ -128,9 +130,9 @@ class BaseHiGraphModel(BaseGraphModel):
         # Let level_l go from 1 to L
         for level_l, gnn in enumerate(self.mesh_init_gnns, start=1):
             # Extract representations
-            send_node_rep = mesh_rep_levels[level_l-1] # (B, N_mesh[l-1], d_h)
-            rec_node_rep = mesh_rep_levels[level_l] # (B, N_mesh[l], d_h)
-            edge_rep = mesh_up_rep[level_l-1]
+            send_node_rep = mesh_rep_levels[level_l - 1]  # (B, N_mesh[l-1], d_h)
+            rec_node_rep = mesh_rep_levels[level_l]  # (B, N_mesh[l], d_h)
+            edge_rep = mesh_up_rep[level_l - 1]
 
             # Apply GNN
             new_node_rep, new_edge_rep = gnn(send_node_rep, rec_node_rep, edge_rep)
@@ -149,8 +151,8 @@ class BaseHiGraphModel(BaseGraphModel):
                 range(self.N_levels - 2, -1, -1),
                 reversed(self.mesh_read_gnns)):
             # Extract representations
-            send_node_rep = mesh_rep_levels[level_l+1] # (B, N_mesh[l+1], d_h)
-            rec_node_rep = mesh_rep_levels[level_l] # (B, N_mesh[l], d_h)
+            send_node_rep = mesh_rep_levels[level_l + 1]  # (B, N_mesh[l+1], d_h)
+            rec_node_rep = mesh_rep_levels[level_l]  # (B, N_mesh[l], d_h)
             edge_rep = mesh_down_rep[level_l]
 
             # Apply GNN
@@ -160,7 +162,7 @@ class BaseHiGraphModel(BaseGraphModel):
             mesh_rep_levels[level_l] = new_node_rep  # (B, N_mesh[l], d_h)
 
         # Return only bottom level representation
-        return mesh_rep_levels[0] # (B, N_mesh[0], d_h)
+        return mesh_rep_levels[0]  # (B, N_mesh[0], d_h)
 
     def hi_processor_step(self, mesh_rep_levels, mesh_same_rep, mesh_up_rep,
                           mesh_down_rep):

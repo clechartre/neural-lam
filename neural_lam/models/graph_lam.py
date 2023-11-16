@@ -33,16 +33,18 @@ class GraphLAM(BaseGraphModel):
                                            self.mlp_blueprint_end)
         self.args = args
 
-    def setup(self, args, stage=None):
+    def setup(self, stage=None):
         super().setup(stage)
         # TODO: m2m, to device?
         # GNNs
         # processor
-        processor_nets = [InteractionNet(self.m2m_edge_index,
-                args.hidden_dim, hidden_layers=args.hidden_layers, aggr=args.mesh_aggr)
-            for _ in range(args.processor_layers)]
+        processor_nets = [
+            InteractionNet(
+                self.m2m_edge_index, self.args.hidden_dim,
+                hidden_layers=self.args.hidden_layers, aggr=self.args.mesh_aggr)
+            for _ in range(self.args.processor_layers)]
         self.processor = pyg.nn.Sequential("mesh_rep, edge_rep", [
-                (net, "mesh_rep, mesh_rep, edge_rep -> mesh_rep, edge_rep")
+            (net, "mesh_rep, mesh_rep, edge_rep -> mesh_rep, edge_rep")
             for net in processor_nets])
         # Move the entire processor to the device
         for net in self.processor:

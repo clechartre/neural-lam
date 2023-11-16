@@ -1,10 +1,8 @@
-import torch
 from torch import nn
 
-from neural_lam import utils
-from neural_lam.interaction_net import InteractionNet, MeshDownNet, MeshInitNet
-from neural_lam.models.base_hi_graph_model import BaseHiGraphModel
 from neural_lam.interaction_net import InteractionNet
+from neural_lam.models.base_hi_graph_model import BaseHiGraphModel
+
 
 class HiLAM(BaseHiGraphModel):
     """
@@ -12,27 +10,28 @@ class HiLAM(BaseHiGraphModel):
     the hierarchy during processing.
     The Hi-LAM model from Oskarsson et al. (2023)
     """
+
     def __init__(self, args):
         super().__init__(args)
 
         # Make down GNNs, both for down edges and same level
-        self.mesh_down_gnns = nn.ModuleList([self.make_down_gnns(args) for _ in
-            range(args.processor_layers)]) # Nested lists (proc_steps, N_levels-1)
-        self.mesh_down_same_gnns = nn.ModuleList([self.make_same_gnns(args) for _ in
-            range(args.processor_layers)]) # Nested lists (proc_steps, N_levels)
+        self.mesh_down_gnns = nn.ModuleList([self.make_down_gnns(args) for _ in range(
+            args.processor_layers)])  # Nested lists (proc_steps, N_levels-1)
+        self.mesh_down_same_gnns = nn.ModuleList([self.make_same_gnns(args) for _ in range(
+            args.processor_layers)])  # Nested lists (proc_steps, N_levels)
 
         # Make up GNNs, both for up edges and same level
-        self.mesh_up_gnns = nn.ModuleList([self.make_up_gnns(args) for _ in
-            range(args.processor_layers)]) # Nested lists (proc_steps, N_levels-1)
-        self.mesh_up_same_gnns = nn.ModuleList([self.make_same_gnns(args) for _ in
-            range(args.processor_layers)]) # Nested lists (proc_steps, N_levels)
+        self.mesh_up_gnns = nn.ModuleList([self.make_up_gnns(args) for _ in range(
+            args.processor_layers)])  # Nested lists (proc_steps, N_levels-1)
+        self.mesh_up_same_gnns = nn.ModuleList([self.make_same_gnns(args) for _ in range(
+            args.processor_layers)])  # Nested lists (proc_steps, N_levels)
 
     def make_same_gnns(self, args):
         """
         Make intra-level GNNs.
         """
         return nn.ModuleList([InteractionNet(
-                edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
+            edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
             for edge_index in self.m2m_edge_index])
 
     def make_up_gnns(self, args):
@@ -40,7 +39,7 @@ class HiLAM(BaseHiGraphModel):
         Make GNNs for processing steps up through the hierarchy.
         """
         return nn.ModuleList([InteractionNet(
-                edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
+            edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
             for edge_index in self.mesh_up_edge_index])
 
     def make_down_gnns(self, args):
@@ -48,7 +47,7 @@ class HiLAM(BaseHiGraphModel):
         Make GNNs for processing steps down through the hierarchy.
         """
         return nn.ModuleList([InteractionNet(
-                edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
+            edge_index, args.hidden_dim, hidden_layers=args.hidden_layers)
             for edge_index in self.mesh_down_edge_index])
 
     def mesh_down_step(self, mesh_rep_levels, mesh_same_rep, mesh_down_rep, down_gnns,
@@ -58,26 +57,26 @@ class HiLAM(BaseHiGraphModel):
         using down edges and same-level edges.
         """
         # Run same level processing on level L
-        mesh_rep_levels[-1], mesh_same_rep[-1] = same_gnns[-1](mesh_rep_levels[-1],
-                mesh_rep_levels[-1], mesh_same_rep[-1])
+        mesh_rep_levels[-1], mesh_same_rep[-1] = same_gnns[-1](
+            mesh_rep_levels[-1], mesh_rep_levels[-1], mesh_same_rep[-1])
 
         # Let level_l go from L-1 to 0
         for level_l, down_gnn, same_gnn in zip(
                 range(self.N_levels - 2, -1, -1),
                 reversed(down_gnns), reversed(same_gnns[:-1])):
             # Extract representations
-            send_node_rep = mesh_rep_levels[level_l+1] # (B, N_mesh[l+1], d_h)
-            rec_node_rep = mesh_rep_levels[level_l] # (B, N_mesh[l], d_h)
+            send_node_rep = mesh_rep_levels[level_l + 1]  # (B, N_mesh[l+1], d_h)
+            rec_node_rep = mesh_rep_levels[level_l]  # (B, N_mesh[l], d_h)
             down_edge_rep = mesh_down_rep[level_l]
             same_edge_rep = mesh_same_rep[level_l]
 
             # Apply down GNN
             new_node_rep, mesh_down_rep[level_l] = down_gnn(send_node_rep, rec_node_rep,
-                    down_edge_rep)
+                                                            down_edge_rep)
 
             # Run same level processing on level l
-            mesh_rep_levels[level_l], mesh_same_rep[level_l] = same_gnn(new_node_rep,
-                    new_node_rep, same_edge_rep)
+            mesh_rep_levels[level_l], mesh_same_rep[level_l] = same_gnn(
+                new_node_rep, new_node_rep, same_edge_rep)
             # (B, N_mesh[l], d_h) and (B, M_same[l], d_h)
 
         return mesh_rep_levels, mesh_same_rep, mesh_down_rep
@@ -90,26 +89,26 @@ class HiLAM(BaseHiGraphModel):
         """
 
         # Run same level processing on level 0
-        mesh_rep_levels[0], mesh_same_rep[0] = same_gnns[0](mesh_rep_levels[0],
-                mesh_rep_levels[0], mesh_same_rep[0])
+        mesh_rep_levels[0], mesh_same_rep[0] = same_gnns[0](
+            mesh_rep_levels[0], mesh_rep_levels[0], mesh_same_rep[0])
 
         # Let level_l go from 1 to L
         for level_l, (up_gnn, same_gnn) in enumerate(zip(up_gnns, same_gnns[1:]),
                                                      start=1):
             # Extract representations
-            send_node_rep = mesh_rep_levels[level_l-1] # (B, N_mesh[l-1], d_h)
-            rec_node_rep = mesh_rep_levels[level_l] # (B, N_mesh[l], d_h)
-            up_edge_rep = mesh_up_rep[level_l-1]
+            send_node_rep = mesh_rep_levels[level_l - 1]  # (B, N_mesh[l-1], d_h)
+            rec_node_rep = mesh_rep_levels[level_l]  # (B, N_mesh[l], d_h)
+            up_edge_rep = mesh_up_rep[level_l - 1]
             same_edge_rep = mesh_same_rep[level_l]
 
             # Apply up GNN
-            new_node_rep, mesh_up_rep[level_l-1] = up_gnn(send_node_rep, rec_node_rep,
-                    up_edge_rep)
+            new_node_rep, mesh_up_rep[level_l - 1] = up_gnn(send_node_rep, rec_node_rep,
+                                                            up_edge_rep)
             # (B, N_mesh[l], d_h) and (B, M_up[l-1], d_h)
 
             # Run same level processing on level l
-            mesh_rep_levels[level_l], mesh_same_rep[level_l] = same_gnn(new_node_rep,
-                    new_node_rep, same_edge_rep)
+            mesh_rep_levels[level_l], mesh_same_rep[level_l] = same_gnn(
+                new_node_rep, new_node_rep, same_edge_rep)
             # (B, N_mesh[l], d_h) and (B, M_same[l], d_h)
 
         return mesh_rep_levels, mesh_same_rep, mesh_up_rep
