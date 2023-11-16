@@ -9,11 +9,26 @@ import scipy.spatial
 import torch
 import torch_geometric as pyg
 from torch_geometric.utils.convert import from_networkx
+
 from neural_lam import constants
 
 
 def plot_graph(graph, title=None):
-    fig, axis = plt.subplots(figsize=constants.fig_size, dpi=200)  # W,H
+    """Plot a graph using matplotlib.
+
+    Args:
+        graph (torch_geometric.data.Data): Graph to plot.
+        title (str, optional): Title of plot. Defaults to None.
+
+    Returns:
+        matplotlib.pyplot.Figure: Figure containing plot.
+        matplotlib.pyplot.Axes: Axis containing plot.
+    """
+    fig_size = constants.fig_size
+    fig_size = list(fig_size)
+    fig_size[1] /= 2
+    fig_size = tuple(fig_size)
+    fig, axis = plt.subplots(figsize=fig_size, dpi=200)  # W,H
     edge_index = graph.edge_index
     pos = graph.pos
 
@@ -30,11 +45,6 @@ def plot_graph(graph, title=None):
     degrees = pyg.utils.degree(edge_index[1], num_nodes=pos.shape[0]).cpu().numpy()
     edge_index = edge_index.cpu().numpy()
     pos = pos.cpu().numpy()
-
-    # Check if the number of nodes exceeds 100
-    if pos.shape[0] > constants.zoom_limit:
-        # If it does, only include the first 100 nodes
-        pos = pos[:constants.zoom_limit]
 
     # Plot edges
     from_pos = pos[edge_index[0]]  # (M/2, 2)
@@ -53,6 +63,13 @@ def plot_graph(graph, title=None):
 
     if title is not None:
         axis.set_title(title)
+
+    if constants.zoom_limit < pos.shape[0]:
+        zoom_x_min = pos[:, 0].min()
+        zoom_x_max = pos[:, 0].max()
+        print(f"Zooming in on {constants.zoom_limit} nodes.")
+        zoom_x_max = min(zoom_x_max, constants.zoom_limit + zoom_x_min)
+        axis.set_xlim([zoom_x_min, zoom_x_max])
 
     return fig, axis
 
@@ -96,25 +113,35 @@ def mk_2d_graph(xy, nx, ny):
     # avoid nodes on border
     dx = (xM - xm) / nx
     dy = (yM - ym) / ny
-    lx = np.linspace(xm + dx / 2, xM - dx / 2, nx)
-    ly = np.linspace(ym + dy / 2, yM - dy / 2, ny)
+    lx = np.rint(np.linspace(xm + dx / 2, xM - dx / 2, nx)).astype(int)
+    ly = np.rint(np.linspace(ym + dy / 2, yM - dy / 2, ny)).astype(int)
+    print("len(lx): ", len(lx))
+    print("len(ly): ", len(ly))
 
     mg = np.meshgrid(lx, ly)
     g = networkx.grid_2d_graph(len(ly), len(lx))
+    print("g: ", g)
 
     for node in g.nodes:
         g.nodes[node]['pos'] = np.array([mg[0][node], mg[1][node]])
 
     # add diagonal edges
-    g.add_edges_from([
-        ((x, y), (x + 1, y + 1))
+    edges_to_add_x = [
+        ((y, x), (y + 1, x + 1))
         for x in range(nx - 1)
         for y in range(ny - 1)
-    ] + [
-        ((x + 1, y), (x, y + 1))
+    ]
+
+    edges_to_add_y = [
+        ((y + 1, x), (y, x + 1))
         for x in range(nx - 1)
         for y in range(ny - 1)
-    ])
+    ]
+
+    edges_to_add = edges_to_add_x + edges_to_add_y
+
+    g.add_edges_from(edges_to_add)
+    print("g: ", g)
 
     # turn into directed graph
     dg = networkx.DiGraph(g)
@@ -169,7 +196,7 @@ def main():
 
     # graph geometry
     nx = 3  # number of children = nx**2
-    nlev = int(np.log(max(xy.shape)) / np.log(nx))
+    nlev = int(np.log(np.max(xy.shape)) / np.log(nx))
     nleaf = nx**nlev  # leaves at the bottom = nleaf**2
 
     mesh_levels = nlev - 1
@@ -177,20 +204,33 @@ def main():
         # Limit the levels in mesh graph
         mesh_levels = min(mesh_levels, args.levels)
 
-    print(f"nlev: {nlev}, nleaf: {nleaf}, mesh_levels: {mesh_levels}")
+    print(f"nlev: {nlev}, nleaf: {nleaf}, mesh_levels: {mesh_levels}", flush=True)
 
     # multi resolution tree levels
     G = []
+    nodes_x_list = []
+    nodes_y_list = []
+
     for lev in range(1, mesh_levels + 1):
-        n = int(nleaf / (nx**lev))
-        g = mk_2d_graph(xy, n, n)
+        nodes_combined = int(nleaf / (nx**lev))**2
+        aspect_ratio = xy.shape[2] / xy.shape[1]
+        print(
+            f"nodes_combined: {nodes_combined}, aspect_ratio: {aspect_ratio}",
+            flush=True)
+        nodes_x = int(max(round(nodes_combined * aspect_ratio)**0.5, 2))
+        nodes_y = int(max(round(nodes_combined / aspect_ratio)**0.5, 2))
+        print(f"nodes_x: {nodes_x}, nodes_y: {nodes_y}")
+        g = mk_2d_graph(xy, nodes_x, nodes_y)
         plot_graph(from_networkx(g), title=f"Mesh graph, level {lev}")
         if args.plot:
             plt.show()
         else:
             plt.savefig(os.path.join(graph_dir_path, f"mesh_graph_{lev}.png"))
+            print(f"Saved mesh graph {lev} to {graph_dir_path}", flush=True)
 
         G.append(g)
+        nodes_x_list.append(nodes_x)
+        nodes_y_list.append(nodes_y)
 
     if args.hierarchical:
         # Relabel nodes of each level with level index first
@@ -301,11 +341,12 @@ def main():
         G_tot = G[0]
         for lev in range(1, len(G)):
             nodes = list(G[lev - 1].nodes)
-            n = int(np.sqrt(len(nodes)))
+            nodes_x = nodes_x_list[lev - 1]
+            nodes_y = nodes_y_list[lev - 1]
             ij = np.array(nodes).reshape(
-                (n, n, 2))[
+                (nodes_y, nodes_x, 2))[
                 1:: nx, 1:: nx, :].reshape(
-                int(n / nx) ** 2, 2)
+                round(nodes_x / nx) * round(nodes_y / nx), 2)
             ij = [tuple(x) for x in ij]
             G[lev] = networkx.relabel_nodes(G[lev], dict(zip(G[lev].nodes, ij)))
             G_tot = networkx.compose(G_tot, G[lev])
@@ -331,6 +372,7 @@ def main():
             plt.show()
         else:
             plt.savefig(os.path.join(graph_dir_path, "mesh2mesh_graph.png"))
+            print(f"Saved mesh graph to {graph_dir_path}", flush=True)
 
     # Save m2m edges
     save_edges_list(m2m_graphs, "m2m", graph_dir_path)
@@ -345,22 +387,22 @@ def main():
     #
     # Grid2Mesh
     #
-
-    # radius within which grid nodes are associated with a mesh node
-    # (in terms of mesh distance)
-    DM_SCALE = 0.67
-
     # mesh nodes on lowest level
     vm = G_bottom_mesh.nodes
+    print("G_boottom_mesh: ", G_bottom_mesh)
     vm_xy = np.array([xy for _, xy in vm.data('pos')])
     # distance between mesh nodes
     dm = np.sqrt(np.sum((vm.data('pos')[(0, 1, 0)] - vm.data('pos')[(0, 0, 0)])**2))
+    print("dm: ", dm)
 
     # grid nodes
     Ny, Nx = xy.shape[1:]
+    print("Ny: ", Ny)
+    print("Nx: ", Nx)
 
     G_grid = networkx.grid_2d_graph(Ny, Nx)
     G_grid.clear_edges()
+    print("G_grid: ", G_grid)
 
     # vg features (only pos introduced here)
     for node in G_grid.nodes:
@@ -370,6 +412,7 @@ def main():
     # add 1000 to node key to separate grid nodes (1000,i,j) from mesh nodes (i,j)
     # and impose sorting order such that vm are the first nodes
     G_grid = prepend_node_index(G_grid, 1000)
+    print("G_grid: ", G_grid)
 
     # build kd tree for grid point pos
     # order in vg_list should be same as in vg_xy
@@ -384,14 +427,17 @@ def main():
     # Need to do sorting of nodes this way for indices to map correctly to pyg
     G_g2m = networkx.Graph()
     G_g2m.add_nodes_from(sorted(G_grid.nodes(data=True)))
+    print("G_g2m: ", G_g2m)
 
     # turn into directed graph
     G_g2m = networkx.DiGraph(G_g2m)
+    print("G_g2m: ", G_g2m)
+    print("len vm: ", len(vm))
 
     # add edges
     for v in vm:
         # find neighbours (index to vg_xy)
-        neigh_idxs = kdt_g.query_ball_point(vm[v]['pos'], dm * DM_SCALE)
+        neigh_idxs = kdt_g.query_ball_point(vm[v]['pos'], dm * constants.dm_scale)
         for i in neigh_idxs:
             u = vg_list[i]
             # add edge from grid to mesh
@@ -400,13 +446,16 @@ def main():
             G_g2m.edges[u, v]['len'] = d
             G_g2m.edges[u, v]['vdiff'] = G_g2m.nodes[u]['pos'] - G_g2m.nodes[v]['pos']
 
+    print("G_g2m: ", G_g2m)
     pyg_g2m = from_networkx(G_g2m)
 
+    print("pyg_g2m: ", pyg_g2m)
     plot_graph(pyg_g2m, title="Grid-to-mesh")
     if args.plot:
         plt.show()
     else:
         plt.savefig(os.path.join(graph_dir_path, "grid2mesh_graph.png"))
+        print(f"Saved grid2mesh graph to {graph_dir_path}", flush=True)
 
     #
     # Mesh2Grid
