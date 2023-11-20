@@ -458,10 +458,10 @@ class ARModel(pl.LightningModule):
                     # Get all the images for the current parameter
                     images = sorted(glob.glob(f'{dir_path}/{param}_m_{member}_t_*.png'))
                     # Generate the GIF
-                    with imageio.get_writer(f'{dir_path}/{param}_m_{member}.gif', mode='I') as writer:
+                    with imageio.get_writer(f'{dir_path}/{param}_m_{member}.gif', mode='I', fps=1) as writer:
                         for filename in images:
                             image = imageio.imread(filename)
-                            writer.append_data(image, duration=1)
+                            writer.append_data(image)
 
         self.spatial_loss_maps.clear()
 
