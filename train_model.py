@@ -143,6 +143,7 @@ def main():
     assert args.model in MODELS, f"Unknown model: {args.model}"
     assert args.step_length <= 3, "Too high step length"
     assert args.eval in (None, "val", "test"), f"Unknown eval setting: {args.eval}"
+    assert args.loss in ("mse", "mae", "huber"), f"Unknown loss function: {args.loss}"
 
     # Set seed
     seed.seed_everything(args.seed)

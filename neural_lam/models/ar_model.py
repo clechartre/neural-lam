@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 import wandb
-from neural_lam import constants, utils, vis
+from neural_lam import constants, loss_functions, utils, vis
 
 
 class ARModel(pl.LightningModule):
@@ -43,16 +43,17 @@ class ARModel(pl.LightningModule):
         self.loss_name = args.loss
         if args.loss == "mse":
             self.loss = nn.MSELoss(reduction="none")
-
             inv_var = self.step_diff_std**-2.
             state_weight = self.param_weights * inv_var  # (d_f,)
         elif args.loss == "mae":
             self.loss = nn.L1Loss(reduction="none")
-
-            # Weight states with inverse std instead in this case
+            state_weight = self.param_weights / self.step_diff_std  # (d_f,)
+        elif args.loss == "huber":
+            self.loss = loss_functions.ZeroTargetHuberLoss(delta=1.)
             state_weight = self.param_weights / self.step_diff_std  # (d_f,)
         else:
             assert False, f"Unknown loss function: {args.loss}"
+
         self.register_buffer("state_weight", state_weight, persistent=False)
 
         self.step_length = args.step_length  # Number of hours per pred. step
