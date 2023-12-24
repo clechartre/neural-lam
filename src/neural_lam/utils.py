@@ -1,4 +1,5 @@
 import os
+import logging
 
 import numpy as np
 import torch
@@ -8,6 +9,18 @@ from tueplots import bundles, figsizes
 
 from neural_lam import constants
 
+
+
+def count_to_log_level(count: int) -> int:
+    """Map occurrence of the command line option verbose to the log level."""
+    if count == 0:
+        return logging.ERROR
+    elif count == 1:
+        return logging.WARNING
+    elif count == 2:
+        return logging.INFO
+    else:
+        return logging.DEBUG
 
 def load_dataset_stats(dataset_name, device="cpu"):
     static_dir_path = os.path.join("data", dataset_name, "static")
