@@ -9,6 +9,7 @@ dependencies:
   - pip>=22.3
   - Cartopy
   - dask
+  - imageio
   - ipython
   - matplotlib
   - netcdf4
