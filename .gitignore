@@ -74,3 +74,4 @@ tags
 .vim
 *.html
 .mypy_cache
+docs/_build
