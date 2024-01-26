@@ -90,13 +90,7 @@ Below follows instructions on how to use Neural-LAM to train and evaluate models
 
 <span style="color:blue;">
 
-For COSMO we use conda to avoid the Cartopy installation issues and because conda environments usually work well on the vCluster called Balfrin.cscs.ch.
-
-1. Simply run `conda env create -f environment.yml` to create the environment.
-2. Activate the environment with `conda activate neural-lam`.
-3. Happy Coding \o/
-
-Note that only the cuda version is pinned to 11.8, otherwise all the latest libraries are installed. This might break in the future and must be adjusted to the users conda version.
+For COSMO we use conda to avoid the Cartopy installation issues and because conda environments usually work well on the vCluster called Balfrin.cscs.ch. Note that only the cuda version is pinned to 11.8, otherwise all the latest libraries are installed. This might break in the future and must be adjusted to the users conda version.
 
 </span>
 
@@ -202,6 +196,7 @@ sbatch slurm_eval.sh
 ```
 
 This will train the model using the same seed and data as seen in the figures on wandb.
+Initial links to the cosmo sample data are set. The preprocessing mentioned above can be triggered as well if required (only once).
 
 </span>
 
