@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Neural-LAM: Neural Weather Prediction for Limited Area Modeling &#8212; Neural-LAM 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=2389946f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Welcome to Neural-LAM’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="neural-lam-neural-weather-prediction-for-limited-area-modeling">
+<h1>Neural-LAM: Neural Weather Prediction for Limited Area Modeling<a class="headerlink" href="#neural-lam-neural-weather-prediction-for-limited-area-modeling" title="Permalink to this heading">¶</a></h1>
+<section id="preparation">
+<h2>Preparation<a class="headerlink" href="#preparation" title="Permalink to this heading">¶</a></h2>
+<p>This project has been created from the
+<a class="reference external" href="https://github.com/MeteoSwiss-APN/mch-python-blueprint">MeteoSwiss Python blueprint</a>
+for the CSCS.
+The recommended way to manage Python versions is with <code class="docutils literal notranslate"><span class="pre">Conda</span></code>
+(<a class="reference external" href="https://docs.conda.io/en/latest/">https://docs.conda.io/en/latest/</a>).
+On CSCS machines it is recommended to install the leaner <code class="docutils literal notranslate"><span class="pre">Miniconda</span></code>
+(<a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">https://docs.conda.io/en/latest/miniconda.html</a>),
+which offers enough functionality for most of our use cases.
+If you don’t want to do this step manually, you may use the script
+<code class="docutils literal notranslate"><span class="pre">tools/setup_miniconda.sh</span></code>.
+The default installation path of this script is the current working directory,
+you might want to change that with the <code class="docutils literal notranslate"><span class="pre">-p</span></code> option to a common location for all
+environments, like e.g. <code class="docutils literal notranslate"><span class="pre">$SCRATCH</span></code>. If you want the script to immediately
+initialize conda (executing <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">init</span></code> and thereby adding a few commands at the
+end of your <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code>) after installation, add the <code class="docutils literal notranslate"><span class="pre">-u</span></code> option:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tmpl/tools/setup_miniconda.sh<span class="w"> </span>-p<span class="w"> </span><span class="nv">$SCRATCH</span><span class="w"> </span>-u
+</pre></div>
+</div>
+<p>In case you ever need to uninstall miniconda, do the following:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>init<span class="w"> </span>--reverse<span class="w"> </span>--all
+rm<span class="w"> </span>-rf<span class="w"> </span><span class="nv">$SCRATCH</span>/miniconda
+</pre></div>
+</div>
+</section>
+<section id="start-developing">
+<h2>Start developing<a class="headerlink" href="#start-developing" title="Permalink to this heading">¶</a></h2>
+<p>Once you created or cloned this repository, make sure the installation is running properly. Install the package dependencies with the provided script <code class="docutils literal notranslate"><span class="pre">setup_env.sh</span></code>.
+Check available options with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tools/setup_env.sh<span class="w"> </span>-h
+</pre></div>
+</div>
+<p>We distinguish pinned installations based on exported (reproducible) environments and free installations where the installation
+is based on top-level dependencies listed in <code class="docutils literal notranslate"><span class="pre">requirements/requirements.yml</span></code>. If you start developing, you might want to do an unpinned installation and export the environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tools/setup_env.sh<span class="w"> </span>-u<span class="w"> </span>-e<span class="w"> </span>-n<span class="w"> </span>&lt;package_env_name&gt;
+</pre></div>
+</div>
+<p><em>Hint</em>: If you are the package administrator, it is a good idea to understand what this script does, you can do everything manually with <code class="docutils literal notranslate"><span class="pre">conda</span></code> instructions.</p>
+<p><em>Hint</em>: Use the flag <code class="docutils literal notranslate"><span class="pre">-m</span></code> to speed up the installation using mamba. Of course you will have to install mamba first (we recommend to install mamba into your base
+environment <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">-c</span> <span class="pre">conda-forge</span> <span class="pre">mamba</span></code>. If you install mamba in another (maybe dedicated) environment, environments installed with mamba will be located
+in <code class="docutils literal notranslate"><span class="pre">&lt;miniconda_root_dir&gt;/envs/mamba/envs</span></code>, which is not very practical.</p>
+<p>The package itself is installed with <code class="docutils literal notranslate"><span class="pre">pip</span></code>. For development, install in editable mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>&lt;package_env_name&gt;
+pip<span class="w"> </span>install<span class="w"> </span>--editable<span class="w"> </span>.
+</pre></div>
+</div>
+<p><em>Warning:</em> Make sure you use the right pip, i.e. the one from the installed conda environment (<code class="docutils literal notranslate"><span class="pre">which</span> <span class="pre">pip</span></code> should point to something like <code class="docutils literal notranslate"><span class="pre">path/to/miniconda/envs/&lt;package_env_name&gt;/bin/pip</span></code>).</p>
+<p>Once your package is installed, run the tests by typing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="o">&lt;</span><span class="n">package_env_name</span><span class="o">&gt;</span>
+<span class="n">pytest</span>
+</pre></div>
+</div>
+<p>If the tests pass, you are good to go. If not, contact the package administrator Simon Adamov. Make sure to update your requirement files and export your environments after installation
+every time you add new imports while developing. Check the next section to find some guidance on the development process if you are new to Python and/or APN.</p>
+<section id="roadmap-to-your-first-contribution">
+<h3>Roadmap to your first contribution<a class="headerlink" href="#roadmap-to-your-first-contribution" title="Permalink to this heading">¶</a></h3>
+<p>Generally, the source code of your library is located in <code class="docutils literal notranslate"><span class="pre">src/&lt;library_name&gt;</span></code>. The blueprint will generate some example code in <code class="docutils literal notranslate"><span class="pre">mutable_number.py</span></code>, <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> and <code class="docutils literal notranslate"><span class="pre">cli.py</span></code>. <code class="docutils literal notranslate"><span class="pre">cli.py</span></code> thereby serves as an entry
+point for functionalities you want to execute from the command line, it is based on the Click library. If you do not need interactions with the command line, you should remove <code class="docutils literal notranslate"><span class="pre">cli.py</span></code>. Moreover, of course there exist other options for command line interfaces,
+a good overview may be found here (<a class="reference external" href="https://realpython.com/comparing-python-command-line-parsing-libraries-argparse-docopt-click/">https://realpython.com/comparing-python-command-line-parsing-libraries-argparse-docopt-click/</a>), we recommend however to use click. The provided example
+code should provide some guidance on how the individual source code files interact within the library. In addition to the example code in <code class="docutils literal notranslate"><span class="pre">src/&lt;library_name&gt;</span></code>, there are examples for
+unit tests in <code class="docutils literal notranslate"><span class="pre">tests/&lt;library_name&gt;/</span></code>, which can be triggered with <code class="docutils literal notranslate"><span class="pre">pytest</span></code> from the command line. Once you implemented a feature (and of course you also
+implemented a meaningful test ;-)), you are likely willing to commit it. First, go to the root directory of your package and run pytest.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>&lt;package_env_name&gt;
+<span class="nb">cd</span><span class="w"> </span>&lt;package-root-dir&gt;
+pytest
+</pre></div>
+</div>
+<p>If you use the tools provided by the blueprint as is, pre-commit will not be triggered locally but only if you push to the main branch
+(or push to a PR to the main branch). If you consider it useful, you can set up pre-commit to run locally before every commit by initializing it once. In the root directory of
+your package, type:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>install
+</pre></div>
+</div>
+<p>If you run <code class="docutils literal notranslate"><span class="pre">pre-commit</span></code> without installing it before (line above), it will fail and the only way to recover it, is to do a forced reinstallation (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">--force-reinstall</span> <span class="pre">pre-commit</span></code>).
+You can also just run pre-commit selectively, whenever you want by typing (<code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">run</span> <span class="pre">--all-files</span></code>). Note that mypy and pylint take a bit of time, so it is really
+up to you, if you want to use pre-commit locally or not. In any case, after running pytest, you can commit and the linters will run at the latest on the GitHub actions server,
+when you push your changes to the main branch. Note that pytest is currently not invoked by pre-commit, so it will not run automatically. Automated testing can be set up with
+GitHub Actions or be implemented in a Jenkins pipeline (template for a plan available in <code class="docutils literal notranslate"><span class="pre">jenkins/</span></code>. See the next section for more details.</p>
+</section>
+</section>
+<section id="development-tools">
+<h2>Development tools<a class="headerlink" href="#development-tools" title="Permalink to this heading">¶</a></h2>
+<p>As this package was created with the APN Python blueprint, it comes with a stack of development tools, which are described in more detail on
+(<a class="reference external" href="https://meteoswiss-apn.github.io/mch-python-blueprint/">https://meteoswiss-apn.github.io/mch-python-blueprint/</a>). Here, we give a brief overview on what is implemented.</p>
+<section id="testing-and-coding-standards">
+<h3>Testing and coding standards<a class="headerlink" href="#testing-and-coding-standards" title="Permalink to this heading">¶</a></h3>
+<p>Testing your code and compliance with the most important Python standards is a requirement for Python software written in APN. To make the life of package
+administrators easier, the most important checks are run automatically on GitHub actions. If your code goes into production, it must additionally be tested on CSCS
+machines, which is only possible with a Jenkins pipeline (GitHub actions is running on a GitHub server).</p>
+</section>
+<section id="pre-commit-on-github-actions">
+<h3>Pre-commit on GitHub actions<a class="headerlink" href="#pre-commit-on-github-actions" title="Permalink to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">.github/workflows/pre-commit.yml</span></code> contains a hook that will trigger the creation of your environment (unpinned) on the GitHub actions server and
+then run various formatters and linters through pre-commit. This hook is only triggered upon pushes to the main branch (in general: don’t do that)
+and in pull requests to the main branch.</p>
+</section>
+<section id="jenkins">
+<h3>Jenkins<a class="headerlink" href="#jenkins" title="Permalink to this heading">¶</a></h3>
+<p>A jenkinsfile is available in the <code class="docutils literal notranslate"><span class="pre">jenkins/</span></code> folder. It can be used for a multibranch jenkins project, which builds
+both commits on branches and PRs. Your jenkins pipeline will not be set up
+automatically. If you need to run your tests on CSCS machines, contact DevOps to help you with the setup of the pipelines. Otherwise, you can ignore the jenkinsfiles
+and exclusively run your tests and checks on GitHub actions.</p>
+</section>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading">¶</a></h2>
+<p align="middle">
+    <img src="figures/neural_lam_header.png" width="700">
+</p>
+Neural-LAM is a repository of graph-based neural weather prediction models for Limited Area Modeling (LAM).
+The code uses [PyTorch](https://pytorch.org/) and [PyTorch Lightning](https://lightning.ai/pytorch-lightning).
+Graph Neural Networks are implemented using [PyG](https://pyg.org/) and logging is set up through [Weights & Biases](https://wandb.ai/).<p>The repository contains LAM versions of:</p>
+<ul class="simple">
+<li><p>The graph-based model from <a class="reference external" href="https://arxiv.org/abs/2202.07575">Keisler (2022)</a>.</p></li>
+<li><p>GraphCast, by <a class="reference external" href="https://arxiv.org/abs/2212.12794">Lam et al. (2023)</a>.</p></li>
+<li><p>The hierarchical model from <a class="reference external" href="https://arxiv.org/abs/2309.17370">Oskarsson et al. (2023)</a>.</p></li>
+</ul>
+<p>For more information see our preprint: <a class="reference external" href="https://arxiv.org/abs/2309.17370">*Graph-based Neural Weather Prediction for Limited Area Modeling*</a>.
+If you use Neural-LAM in your work, please cite:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">oskarsson2023graphbased</span><span class="p">,</span>
+      <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">Graph</span><span class="o">-</span><span class="n">based</span> <span class="n">Neural</span> <span class="n">Weather</span> <span class="n">Prediction</span> <span class="k">for</span> <span class="n">Limited</span> <span class="n">Area</span> <span class="n">Modeling</span><span class="p">},</span>
+      <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Joel</span> <span class="n">Oskarsson</span> <span class="ow">and</span> <span class="n">Tomas</span> <span class="n">Landelius</span> <span class="ow">and</span> <span class="n">Fredrik</span> <span class="n">Lindsten</span><span class="p">},</span>
+      <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2023</span><span class="p">},</span>
+      <span class="n">journal</span><span class="o">=</span><span class="p">{</span><span class="n">arXiv</span> <span class="n">preprint</span> <span class="n">arXiv</span><span class="p">:</span><span class="mf">2309.17370</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>We plan to continue updating this repository as we improve existing models and develop new ones.
+Collaborations around this implementation are very welcome.
+If you are working with Neural-LAM feel free to get in touch and/or submit pull requests to the repository.</p>
+<p><span class="raw-html-md"><span style="color:blue;">Additions relevant to the COSMO Neural-LAM implementation are highlighted in __blue__.</span></span></p>
+</section>
+</section>
+<section id="quick-start">
+<h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading">¶</a></h1>
+<span style="color:blue;">
+Follow the steps below to get started with Neural-LAM on Balfrin.cscs.ch.
+Don't worry everything is carried out on a small subset of data for a limited number of epochs.
+</span><div class="highlight-{bash} notranslate"><div class="highlight"><pre><span></span># Clone the repository
+git clone https://github.com/MeteoSwiss/neural-lam/
+cd neural-lam
+
+# Link the data folder containing the COSMO zarr archives
+ln -s /scratch/mch/sadamov/pyprojects_data/neural_lam/data
+mkdir lightning_logs
+
+# Create the conda environment (~10min)
+mamba env create -f environment.yml
+mamba activate neural-lam
+
+# Run the preprocessing/training scripts
+sbatch slurm_train.sh
+
+# Run the evaluation script and generate plots and gif for TQV
+# (don&#39;t execute preprocessing scripts at the same time as training)
+sbatch slurm_eval.sh
+</pre></div>
+</div>
+</section>
+<section id="modularity">
+<h1>Modularity<a class="headerlink" href="#modularity" title="Permalink to this heading">¶</a></h1>
+<p>The Neural-LAM code is designed to modularize the different components involved in training and evaluating neural weather prediction models.
+Models, graphs and data are stored separately and it should be possible to swap out individual components.
+Still, some restrictions are inevitable:</p>
+<ul class="simple">
+<li><p>The graph used has to be compatible with what the model expects. E.g. a hierarchical model requires a hierarchical graph.</p></li>
+<li><p>The graph and data are specific to the limited area under consideration. This is of course true for the data, but also the graph should be created with the exact geometry of the area in mind.</p></li>
+</ul>
+<p align="middle">
+  <img src="figures/neural_lam_setup.png" width="600"/>
+</p><section id="a-note-on-the-limited-area-setting">
+<h2>A note on the limited area setting<a class="headerlink" href="#a-note-on-the-limited-area-setting" title="Permalink to this heading">¶</a></h2>
+<p>Currently we are using these models on a limited area covering the Nordic region, the so called MEPS area (see <a class="reference external" href="https://arxiv.org/abs/2309.17370">paper</a>).
+There are still some parts of the code that is quite specific for the MEPS area use case.
+This is in particular true for the mesh graph creation (<code class="docutils literal notranslate"><span class="pre">create_mesh.py</span></code>) and some of the constants used (<code class="docutils literal notranslate"><span class="pre">neural_lam/constants.py</span></code>).
+If there is interest to use Neural-LAM for other areas it is not a substantial undertaking to refactor the code to be fully area-agnostic.
+We would be happy to support such enhancements.
+See the issues <a class="reference external" href="https://github.com/joeloskarsson/neural-lam/issues/2">https://github.com/joeloskarsson/neural-lam/issues/2</a>, <a class="reference external" href="https://github.com/joeloskarsson/neural-lam/issues/3">https://github.com/joeloskarsson/neural-lam/issues/3</a> and <a class="reference external" href="https://github.com/joeloskarsson/neural-lam/issues/4">https://github.com/joeloskarsson/neural-lam/issues/4</a> for some initial ideas on how this could be done.</p>
+<span style="color:blue;"><p>For the COSMO implementation some additional settings can be defined in <code class="docutils literal notranslate"><span class="pre">neural_lam/constants</span></code>. Most of the code should take user input either from <code class="docutils literal notranslate"><span class="pre">neural_lam/constants</span></code> or directly from command-line argument parsing. Would certainly be worth the effort to make the code fully area-agnostic.</p>
+</span></section>
+</section>
+<section id="using-neural-lam">
+<h1>Using Neural-LAM<a class="headerlink" href="#using-neural-lam" title="Permalink to this heading">¶</a></h1>
+<p>Below follows instructions on how to use Neural-LAM to train and evaluate models.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<span style="color:blue;"><p>For COSMO we use conda to avoid the Cartopy installation issues and because conda environments usually work well on the vCluster called Balfrin.cscs.ch. Note that only the cuda version is pinned to 11.8, otherwise all the latest libraries are installed. This might break in the future and must be adjusted to the users conda version.</p>
+  </span>
+
+
+:raw-html-md:`<br />`<p>Follow the steps below to create the neccesary python environment.</p>
+<ol class="arabic simple">
+<li><p>Install GEOS for your system. For example with <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">libgeos-dev</span></code>. This is neccesary for the Cartopy requirement.</p></li>
+<li><p>Use python 3.9.</p></li>
+<li><p>Install version 2.0.1 of PyTorch. Follow instructions on the <a class="reference external" href="https://pytorch.org/get-started/previous-versions/">PyTorch webpage</a> for how to set this up with GPU support on your system.</p></li>
+<li><p>Install required packages specified in <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>.</p></li>
+<li><p>Install PyTorch Geometric version 2.2.0. This can be done by running</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>TORCH=&quot;2.0.1&quot;
+CUDA=&quot;cu117&quot;
+
+pip install pyg-lib==0.2.0 torch-scatter==2.1.1 torch-sparse==0.6.17 torch-cluster==1.6.1\
+    torch-geometric==2.3.1 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
+</pre></div>
+</div>
+<p>You will have to adjust the <code class="docutils literal notranslate"><span class="pre">CUDA</span></code> variable to match the CUDA version on your system or to run on CPU. See the <a class="reference external" href="https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html">installation webpage</a> for more information.</p>
+</section>
+<section id="data">
+<h2>Data<a class="headerlink" href="#data" title="Permalink to this heading">¶</a></h2>
+<p>Datasets should be stored in a directory called <code class="docutils literal notranslate"><span class="pre">data</span></code>.
+See the <span class="xref std std-ref">repository format section</span> for details on the directory structure.</p>
+<p>The full MEPS dataset can be shared with other researchers on request, contact us for this.
+A tiny subset of the data (named <code class="docutils literal notranslate"><span class="pre">meps_example</span></code>) is available in <code class="docutils literal notranslate"><span class="pre">example_data.zip</span></code>, which can be downloaded from <a class="reference external" href="https://liuonline-my.sharepoint.com/:f:/g/personal/joeos82_liu_se/EuiUuiGzFIFHruPWpfxfUmYBSjhqMUjNExlJi9W6ULMZ1w?e=97pnGX">here</a>.
+Download the file and unzip in the neural-lam directory.
+All graphs used in the paper are also available for download at the same link (but can as easily be re-generated using <code class="docutils literal notranslate"><span class="pre">create_mesh.py</span></code>).
+Note that this is far too little data to train any useful models, but all scripts can be ran with it.
+It should thus be useful to make sure that your python environment is set up correctly and that all the code can be ran without any issues.</p>
+<span style="color:blue;"><p>For COSMO the data is stored in the <code class="docutils literal notranslate"><span class="pre">data</span></code> folder with the same structure, but called <code class="docutils literal notranslate"><span class="pre">cosmo</span></code>. The data will be open-source someday but for now we cannot share the data outside of our vCluster. A tiny example dataset could probably be made available.</p>
+</span></section>
+<section id="pre-processing">
+<h2>Pre-processing<a class="headerlink" href="#pre-processing" title="Permalink to this heading">¶</a></h2>
+<p>An overview of how the different scripts and files depend on each other is given in this figure:</p>
+<p align="middle">
+  <img src="figures/component_dependencies.png"/>
+</p>
+In order to start training models at least three pre-processing scripts have to be ran:<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">create_mesh.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_grid_features.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_parameter_weights.py</span></code></p></li>
+</ul>
+<span style="color:blue;"><p>For COSMO also run <code class="docutils literal notranslate"><span class="pre">create_static_features.py</span></code> to create the static features for the graph nodes.</p>
+</span><section id="create-graph">
+<h3>Create graph<a class="headerlink" href="#create-graph" title="Permalink to this heading">¶</a></h3>
+<p>Run <code class="docutils literal notranslate"><span class="pre">create_mesh.py</span></code> with suitable options to generate the graph you want to use (see <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">create_mesh.py</span> <span class="pre">--help</span></code> for a list of options).
+The graphs used for the different models in the <a class="reference external" href="https://arxiv.org/abs/2309.17370">paper</a> can be created as:</p>
+<ul class="simple">
+<li><p><strong>GC-LAM</strong>: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">create_mesh.py</span> <span class="pre">--graph</span> <span class="pre">multiscale</span></code></p></li>
+<li><p><strong>Hi-LAM</strong>: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">create_mesh.py</span> <span class="pre">--graph</span> <span class="pre">hierarchical</span> <span class="pre">--hierarchical</span> <span class="pre">1</span></code> (also works for Hi-LAM-Parallel)</p></li>
+<li><p><strong>L1-LAM</strong>: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">create_mesh.py</span> <span class="pre">--graph</span> <span class="pre">1level</span> <span class="pre">--levels</span> <span class="pre">1</span></code></p></li>
+</ul>
+<p>The graph-related files are stored in a directory called <code class="docutils literal notranslate"><span class="pre">graphs</span></code>.</p>
+</section>
+<section id="create-remaining-static-features">
+<h3>Create remaining static features<a class="headerlink" href="#create-remaining-static-features" title="Permalink to this heading">¶</a></h3>
+<p>To create the remaining static files run the scripts <code class="docutils literal notranslate"><span class="pre">create_grid_features.py</span></code> and <code class="docutils literal notranslate"><span class="pre">create_parameter_weights.py</span></code>.
+The main option to set for these is just which dataset to use.</p>
+</section>
+</section>
+<section id="weights-biases-integration">
+<h2>Weights &amp; Biases Integration<a class="headerlink" href="#weights-biases-integration" title="Permalink to this heading">¶</a></h2>
+<p>The project is fully integrated with <a class="reference external" href="https://www.wandb.ai/">Weights &amp; Biases</a> (W&amp;B) for logging and visualization, but can just as easily be used without it.
+When W&amp;B is used, training configuration, training/test statistics and plots are sent to the W&amp;B servers and made available in an interactive web interface.
+If W&amp;B is turned off, logging instead saves everything locally to a directory like <code class="docutils literal notranslate"><span class="pre">wandb/dryrun...</span></code>.
+The W&amp;B project name is set to <code class="docutils literal notranslate"><span class="pre">neural-lam</span></code>, but this can be changed in <code class="docutils literal notranslate"><span class="pre">neural_lam/constants.py</span></code>.
+See the <a class="reference external" href="https://docs.wandb.ai/">W&amp;B documentation</a> for details.</p>
+<p>If you would like to login and use W&amp;B, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wandb</span> <span class="n">login</span>
+</pre></div>
+</div>
+<p>If you would like to turn off W&amp;B and just log things locally, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wandb</span> <span class="n">off</span>
+</pre></div>
+</div>
+</section>
+<section id="train-models">
+<h2>Train Models<a class="headerlink" href="#train-models" title="Permalink to this heading">¶</a></h2>
+<p>Models can be trained using <code class="docutils literal notranslate"><span class="pre">train_model.py</span></code>.
+Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">train_model.py</span> <span class="pre">--help</span></code> for a full list of training options.
+A few of the key ones are outlined below:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--dataset</span></code>: Which data to train on</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--model</span></code>: Which model to train</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--graph</span></code>: Which graph to use with the model</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--processor_layers</span></code>: Number of GNN layers to use in the processing part of the model</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ar_steps</span></code>: Number of time steps to unroll for when making predictions and computing the loss</p></li>
+</ul>
+<span style="color:blue;"><p>For COSMO two simple slurm sbatch scripts are available for training/evaluating the model. You can launch either of these jobs respectively with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sbatch</span> <span class="n">slurm_train</span><span class="o">.</span><span class="n">sh</span>
+<span class="n">sbatch</span> <span class="n">slurm_eval</span><span class="o">.</span><span class="n">sh</span>
+</pre></div>
+</div>
+<p>This will train the model using the same seed and data as seen in the figures on wandb.
+Initial links to the cosmo sample data are set. The preprocessing mentioned above can be triggered as well if required (only once).</p>
+</span><p>Checkpoints of trained models are stored in the <code class="docutils literal notranslate"><span class="pre">saved_models</span></code> directory.
+The implemented models are:</p>
+<section id="graph-lam">
+<h3>Graph-LAM<a class="headerlink" href="#graph-lam" title="Permalink to this heading">¶</a></h3>
+<p>This is the basic graph-based LAM model.
+The encode-process-decode framework is used with a mesh graph in order to make one-step pedictions.
+This model class is used both for the L1-LAM and GC-LAM models from the <a class="reference external" href="https://arxiv.org/abs/2309.17370">paper</a>, only with different graphs.</p>
+<p>To train 1L-LAM use</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">train_model</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">model</span> <span class="n">graph_lam</span> <span class="o">--</span><span class="n">graph</span> <span class="mi">1</span><span class="n">level</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>To train GC-LAM use</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">train_model</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">model</span> <span class="n">graph_lam</span> <span class="o">--</span><span class="n">graph</span> <span class="n">multiscale</span> <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+<section id="hi-lam">
+<h3>Hi-LAM<a class="headerlink" href="#hi-lam" title="Permalink to this heading">¶</a></h3>
+<p>A version of Graph-LAM that uses a hierarchical mesh graph and performs sequential message passing through the hierarchy during processing.</p>
+<p>To train Hi-LAM use</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">train_model</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">model</span> <span class="n">hi_lam</span> <span class="o">--</span><span class="n">graph</span> <span class="n">hierarchical</span> <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+<section id="hi-lam-parallel">
+<h3>Hi-LAM-Parallel<a class="headerlink" href="#hi-lam-parallel" title="Permalink to this heading">¶</a></h3>
+<p>A version of Hi-LAM where all message passing in the hierarchical mesh (up, down, inter-level) is ran in paralell.
+Not included in the paper as initial experiments showed worse results than Hi-LAM, but could be interesting to try in more settings.</p>
+<p>To train Hi-LAM-Parallel use</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">train_model</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">model</span> <span class="n">hi_lam_parallel</span> <span class="o">--</span><span class="n">graph</span> <span class="n">hierarchical</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>Checkpoint files for our models trained on the MEPS data are available upon request.</p>
+</section>
+</section>
+<section id="evaluate-models">
+<h2>Evaluate Models<a class="headerlink" href="#evaluate-models" title="Permalink to this heading">¶</a></h2>
+<p>Evaluation is also done using <code class="docutils literal notranslate"><span class="pre">train_model.py</span></code>, but using the <code class="docutils literal notranslate"><span class="pre">--eval</span></code> option.
+Use <code class="docutils literal notranslate"><span class="pre">--eval</span> <span class="pre">val</span></code> to evaluate the model on the validation set and <code class="docutils literal notranslate"><span class="pre">--eval</span> <span class="pre">test</span></code> to evaluate on test data.
+Most of the training options are also relevant for evaluation (not <code class="docutils literal notranslate"><span class="pre">ar_steps</span></code>, evaluation always unrolls full forecasts).
+Some options specifically important for evaluation are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--load</span></code>: Path to model checkpoint file (<code class="docutils literal notranslate"><span class="pre">.ckpt</span></code>) to load parameters from</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--n_example_pred</span></code>: Number of example predictions to plot during evaluation.</p></li>
+</ul>
+<p><strong>Note:</strong> While it is technically possible to use multiple GPUs for running evaluation, this is strongly discouraged. If using multiple devices the <code class="docutils literal notranslate"><span class="pre">DistributedSampler</span></code> will replicate some samples to make sure all devices have the same batch size, meaning that evaluation metrics will be unreliable. This issue stems from PyTorch Lightning. See for example <a class="reference external" href="https://github.com/Lightning-AI/torchmetrics/pull/1886">this draft PR</a> for more discussion and ongoing work to remedy this.</p>
+</section>
+</section>
+<section id="repository-structure">
+<h1>Repository Structure<a class="headerlink" href="#repository-structure" title="Permalink to this heading">¶</a></h1>
+<p>Except for training and pre-processing scripts all the source code can be found in the <code class="docutils literal notranslate"><span class="pre">neural_lam</span></code> directory.
+Model classes, including abstract base classes, are located in <code class="docutils literal notranslate"><span class="pre">neural_lam/models</span></code>.</p>
+<section id="format-of-data-directory">
+<h2>Format of data directory<a class="headerlink" href="#format-of-data-directory" title="Permalink to this heading">¶</a></h2>
+<p>It is possible to store multiple datasets in the <code class="docutils literal notranslate"><span class="pre">data</span></code> directory.
+Each dataset contains a set of files with static features and a set of samples.
+The samples are split into different sub-directories for training, validation and testing.
+The directory structure is shown with examples below.
+Script names within parenthesis denote the script used to generate the file.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>data
+├── dataset1
+│   ├── samples                             - Directory with data samples
+│   │   ├── train                           - Training data
+│   │   │   ├── nwp_2022040100_mbr000.npy  - A time series sample
+│   │   │   ├── nwp_2022040100_mbr001.npy
+│   │   │   ├── ...
+│   │   │   ├── nwp_2022043012_mbr001.npy
+│   │   │   ├── nwp_toa_downwelling_shortwave_flux_2022040100.npy   - Solar flux forcing
+│   │   │   ├── nwp_toa_downwelling_shortwave_flux_2022040112.npy
+│   │   │   ├── ...
+│   │   │   ├── nwp_toa_downwelling_shortwave_flux_2022043012.npy
+│   │   │   ├── wtr_2022040100.npy          - Open water features for one sample
+│   │   │   ├── wtr_2022040112.npy
+│   │   │   ├── ...
+│   │   │   └── wtr_202204012.npy
+│   │   ├── val                             - Validation data
+│   │   └── test                            - Test data
+│   └── static                              - Directory with graph information and static features
+│       ├── nwp_xy.npy                      - Coordinates of grid nodes (part of dataset)
+│       ├── surface_geopotential.npy        - Geopotential at surface of grid nodes (part of dataset)
+│       ├── border_mask.npy                 - Mask with True for grid nodes that are part of border (part of dataset)
+│       ├── grid_features.pt                - Static features of grid nodes (create_grid_features.py)
+│       ├── parameter_mean.pt               - Means of state parameters (create_parameter_weights.py)
+│       ├── parameter_std.pt                - Std.-dev. of state parameters (create_parameter_weights.py)
+│       ├── diff_mean.pt                    - Means of one-step differences (create_parameter_weights.py)
+│       ├── diff_std.pt                     - Std.-dev. of one-step differences (create_parameter_weights.py)
+│       ├── flux_stats.pt                   - Mean and std.-dev. of solar flux forcing (create_parameter_weights.py)
+│       └── parameter_weights.npy           - Loss weights for different state parameters (create_parameter_weights.py)
+├── dataset2
+├── ...
+└── datasetN
+</pre></div>
+</div>
+</section>
+<section id="format-of-graph-directory">
+<h2>Format of graph directory<a class="headerlink" href="#format-of-graph-directory" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">graphs</span></code> directory contains generated graph structures that can be used by different graph-based models.
+The structure is shown with examples below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>graphs
+├── graph1                                  - Directory with a graph definition
+│   ├── m2m_edge_index.pt                   - Edges in mesh graph (create_mesh.py)
+│   ├── g2m_edge_index.pt                   - Edges from grid to mesh (create_mesh.py)
+│   ├── m2g_edge_index.pt                   - Edges from mesh to grid (create_mesh.py)
+│   ├── m2m_features.pt                     - Static features of mesh edges (create_mesh.py)
+│   ├── g2m_features.pt                     - Static features of grid to mesh edges (create_mesh.py)
+│   ├── m2g_features.pt                     - Static features of mesh to grid edges (create_mesh.py)
+│   └── mesh_features.pt                    - Static features of mesh nodes (create_mesh.py)
+├── graph2
+├── ...
+└── graphN
+</pre></div>
+</div>
+<section id="mesh-hierarchy-format">
+<h3>Mesh hierarchy format<a class="headerlink" href="#mesh-hierarchy-format" title="Permalink to this heading">¶</a></h3>
+<p>To keep track of levels in the mesh graph, a list format is used for the files with mesh graph information.
+In particular, the files</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>│   ├── m2m_edge_index.pt                   - Edges in mesh graph (create_mesh.py)
+│   ├── m2m_features.pt                     - Static features of mesh edges (create_mesh.py)
+│   ├── mesh_features.pt                    - Static features of mesh nodes (create_mesh.py)
+</pre></div>
+</div>
+<p>all contain lists of length <code class="docutils literal notranslate"><span class="pre">L</span></code>, for a hierarchical mesh graph with <code class="docutils literal notranslate"><span class="pre">L</span></code> layers.
+For non-hierarchical graphs <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">==</span> <span class="pre">1</span></code> and these are all just singly-entry lists.
+Each entry in the list contains the corresponding edge set or features of that level.
+Note that the first level (index 0 in these lists) corresponds to the lowest level in the hierarchy.</p>
+<p>In addition, hierarchical mesh graphs (<code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>) feature a few additional files with static data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── graph1
+│   ├── ...
+│   ├── mesh_down_edge_index.pt             - Downward edges in mesh graph (create_mesh.py)
+│   ├── mesh_up_edge_index.pt               - Upward edges in mesh graph (create_mesh.py)
+│   ├── mesh_down_features.pt               - Static features of downward mesh edges (create_mesh.py)
+│   ├── mesh_up_features.pt                 - Static features of upward mesh edges (create_mesh.py)
+│   ├── ...
+</pre></div>
+</div>
+<p>These files have the same list format as the ones above, but each list has length <code class="docutils literal notranslate"><span class="pre">L-1</span></code> (as these edges describe connections between levels).
+Entries 0 in these lists describe edges between the lowest levels 1 and 2.</p>
+</section>
+</section>
+</section>
+<section id="contact">
+<h1>Contact<a class="headerlink" href="#contact" title="Permalink to this heading">¶</a></h1>
+<p>If you are interested in machine learning models for LAM, have questions about our implementation or ideas for extending it, feel free to get in touch.
+You can open a github issue on this page, or (if more suitable) send an email to <a class="reference external" href="mailto:joel&#46;oskarsson&#37;&#52;&#48;liu&#46;se">joel<span>&#46;</span>oskarsson<span>&#64;</span>liu<span>&#46;</span>se</a>.</p>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Neural-LAM</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Neural-LAM: Neural Weather Prediction for Limited Area Modeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#preparation">Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#start-developing">Start developing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-tools">Development tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#quick-start">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#modularity">Modularity</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#a-note-on-the-limited-area-setting">A note on the limited area setting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#using-neural-lam">Using Neural-LAM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pre-processing">Pre-processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#weights-biases-integration">Weights &amp; Biases Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#train-models">Train Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluate-models">Evaluate Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#repository-structure">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#format-of-data-directory">Format of data directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#format-of-graph-directory">Format of graph directory</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#contact">Contact</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">History</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to Neural-LAM’s documentation!</a></li>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Simon Adamov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/readme.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
