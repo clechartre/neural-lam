@@ -1,0 +1,259 @@
+2: [rank: 2] Seed set to 42
+3: [rank: 3] Seed set to 42
+1: [rank: 1] Seed set to 42
+0: [rank: 0] Seed set to 42
+1: [rank: 1] Seed set to 42
+3: [rank: 3] Seed set to 42
+2: [rank: 2] Seed set to 42
+2: Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
+3: Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
+1: Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
+0: cat: /sys/module/amdgpu/initstate
+0: : No such file or directory
+0: ERROR:root:Driver not initialized (amdgpu not found in modules)
+0: wandb: Tracking run with wandb version 0.16.2
+0: wandb: W&B syncing is set to `offline` in this directory.  
+0: wandb: Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+0: /scratch/mch/sadamov/neural-lam/lib/python3.11/site-packages/pytorch_lightning/loggers/wandb.py:389: There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`.
+0: GPU available: True (cuda), used: True
+0: TPU available: False, using: 0 TPU cores
+0: IPU available: False, using: 0 IPUs
+0: HPU available: False, using: 0 HPUs
+0: [rank: 0] Seed set to 42
+0: Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+0: ----------------------------------------------------------------------------------------------------
+0: distributed_backend=nccl
+0: All distributed processes registered. Starting with 4 processes
+0: ----------------------------------------------------------------------------------------------------
+0: 
+0: /scratch/mch/sadamov/neural-lam/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:639: Checkpoint directory /users/sadamov/pyprojects/neural-cosmo/wandb/offline-run-20240126_050647-gz03t9mr/files exists and is not empty.
+1: LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+2: LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+3: LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+0: LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+0: 
+0:    | Name              | Type              | Params
+0: ---------------------------------------------------------
+0: 0  | loss              | MSELoss           | 0     
+0: 1  | grid_embedder     | Sequential        | 10.9 K
+0: 2  | g2m_embedder      | Sequential        | 4.5 K 
+0: 3  | m2g_embedder      | Sequential        | 4.5 K 
+0: 4  | g2m_gnn           | InteractionNet    | 29.2 K
+0: 5  | encoding_grid_mlp | Sequential        | 8.4 K 
+0: 6  | m2g_gnn           | InteractionNet    | 29.2 K
+0: 7  | output_map        | Sequential        | 6.9 K 
+0: 8  | mesh_embedder     | Sequential        | 4.5 K 
+0: 9  | m2m_embedder      | Sequential        | 4.5 K 
+0: 10 | processor         | Sequential_675d39 | 116 K 
+0: ---------------------------------------------------------
+0: 219 K     Trainable params
+0: 0         Non-trainable params
+0: 219 K     Total params
+0: 0.878     Total estimated model params size (MB)
+1: SLURM auto-requeueing enabled. Setting signal handlers.
+2: SLURM auto-requeueing enabled. Setting signal handlers.
+3: SLURM auto-requeueing enabled. Setting signal handlers.
+0: SLURM auto-requeueing enabled. Setting signal handlers.
+0: `Trainer.fit` stopped: `max_epochs=10` reached.
+0: FIT Profiler Report
+0: 
+0: --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+0: |  Action                                                                                                                                                         	|  Mean duration (s)	|  Num calls      	|  Total time (s) 	|  Percentage %   	|
+0: --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+0: |  Total                                                                                                                                                          	|  -              	|  4032           	|  508.73         	|  100
+0:  %          	|
+0: --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+0: |  run_training_epoch                                                                                                                                             	|  45.338         	|  10             	|  453.38         	|  89.119         	|
+0: |  [Strategy]DDPStrategy.validation_step                                                                                                                          	|  2.1313         	|  90             	|  191.82         	|  37.704         	|
+0: |  [_TrainingEpochLoop].train_dataloader_next                                                                                                                     	|  1.6443         	|  70             	|  115.1          	|  22.626         	|
+0: |  run_training_bat
+0: ch                                                                                                                                             	|  0.93629        	|  70             	|  65.54          	|  12.883         	|
+0: |  [LightningModule]GraphLAM.optimizer_step                                                                                                                       	|  0.93568        	|  70             	|  65.497         	|  12.875         	|
+0: |  [Strategy]DDPStrategy.training_step                                                                                                                            	|  0.64147        	|  70             	|  44.903         	|  8.8264         	|
+0: |  [_EvaluationLoop].val_next                                                                                                                                     	|  0.44305        	|  90             	|  39.874         	|  7.838          	|
+0: |  [Strategy]DDPStrategy.batch_to_device                                       
+0:                                                                                    	|  0.20797        	|  160            	|  33.275         	|  6.5407         	|
+0: |  [LightningModule]GraphLAM.transfer_batch_to_device                                                                                                             	|  0.20778        	|  160            	|  33.244         	|  6.5347         	|
+0: |  [Strategy]DDPStrategy.backward                                                                                                                                 	|  0.29025        	|  70             	|  20.317         	|  3.9937         	|
+0: |  [LightningDataModule]WeatherDataModule.setup                                                                                                                   	|  15.106         	|  1              	|  15.106         	|  2.9693         	|
+0: |  [LightningModule]GraphLAM.on_validation_epoch_end                                                                                       
+0:                        	|  1.9385         	|  3              	|  5.8155         	|  1.1431         	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_train_epoch_end       	|  0.030328       	|  10             	|  0.30328        	|  0.059614       	|
+0: |  [Callback]TQDMProgressBar.on_validation_batch_end                                                                                                              	|  0.00077769     	|  90             	|  0.069992       	|  0.013758       	|
+0: |  [Callback]TQDMProgressBar.on_train_batch_end                                                                                                                   	|  0.00058217     	|  70             	|  0.040752       	|  0.0080104      	|
+0: |  [Callback]TQDMProgressBar.on_sanity_check_start                                                                                                                	|  0.030921       	|  1             
+0:  	|  0.030921       	|  0.006078       	|
+0: |  [LightningModule]GraphLAM.setup                                                                                                                                	|  0.025373       	|  1              	|  0.025373       	|  0.0049875      	|
+0: |  [LightningModule]GraphLAM.optimizer_zero_grad                                                                                                                  	|  0.00036161     	|  70             	|  0.025313       	|  0.0049757      	|
+0: |  [Callback]TQDMProgressBar.on_validation_start                                                                                                                  	|  0.0065216      	|  3              	|  0.019565       	|  0.0038458      	|
+0: |  [LightningModule]GraphLAM.on_validation_model_eval                                                                                                             	|  0.0046063      	|  3              	|  0.013819       	|  0.0027163      	|
+0: |  [Callback]TQDMP
+0: rogressBar.on_validation_batch_start                                                                                                            	|  0.00015223     	|  90             	|  0.013701       	|  0.0026932      	|
+0: |  [Callback]TQDMProgressBar.on_train_epoch_end                                                                                                                   	|  0.0007979      	|  10             	|  0.007979       	|  0.0015684      	|
+0: |  [Callback]TQDMProgressBar.on_train_epoch_start                                                                                                                 	|  0.00029332     	|  10             	|  0.0029332      	|  0.00057657     	|
+0: |  [Callback]ModelSummary.on_fit_start                                                                                                                            	|  0.0027021      	|  1              	|  0.0027021      	|  0.00053114     	|
+0: |  [Callback]TQDMProgressBar.on_train_start                                   
+0:                                                                                     	|  0.0022957      	|  1              	|  0.0022957      	|  0.00045125     	|
+0: |  [LightningModule]GraphLAM.configure_gradient_clipping                                                                                                          	|  2.7084e-05     	|  70             	|  0.0018959      	|  0.00037267     	|
+0: |  [Callback]TQDMProgressBar.on_validation_end                                                                                                                    	|  0.00059952     	|  3              	|  0.0017985      	|  0.00035353     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.setup                    	|  0.0016713      	|  1              	|  0.0016713      	|  0.00032853     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.o
+0: n_train_batch_end       	|  2.064e-05      	|  70             	|  0.0014448      	|  0.000284       	|
+0: |  [LightningModule]GraphLAM.on_validation_model_train                                                                                                            	|  0.00038594     	|  3              	|  0.0011578      	|  0.00022759     	|
+0: |  [LightningModule]GraphLAM.configure_optimizers                                                                                                                 	|  0.0010526      	|  1              	|  0.0010526      	|  0.00020691     	|
+0: |  [LightningModule]GraphLAM.on_validation_model_zero_grad                                                                                                        	|  0.00047323     	|  2              	|  0.00094645     	|  0.00018604     	|
+0: |  [LightningModule]GraphLAM.on_before_batch_transfer                                                                                                             	|  3.3989e-06     	|  160          
+0:   	|  0.00054383     	|  0.0001069      	|
+0: |  [LightningDataModule]WeatherDataModule.val_dataloader                                                                                                          	|  0.00040905     	|  1              	|  0.00040905     	|  8.0406e-05     	|
+0: |  [Callback]ModelSummary.on_validation_batch_end                                                                                                                 	|  4.4561e-06     	|  90             	|  0.00040105     	|  7.8833e-05     	|
+0: |  [LightningModule]GraphLAM.lr_scheduler_step                                                                                                                    	|  3.5404e-05     	|  10             	|  0.00035404     	|  6.9592e-05     	|
+0: |  [Callback]TQDMProgressBar.on_train_end                                                                                                                         	|  0.00031679     	|  1              	|  0.00031679     	|  6.227e-05      	|
+0: |  [LightningModu
+0: le]GraphLAM.on_after_batch_transfer                                                                                                              	|  1.834e-06      	|  160            	|  0.00029344     	|  5.768e-05      	|
+0: |  [Callback]TQDMProgressBar.on_train_batch_start                                                                                                                 	|  4.076e-06      	|  70             	|  0.00028532     	|  5.6085e-05     	|
+0: |  [LightningDataModule]WeatherDataModule.train_dataloader                                                                                                        	|  0.00027793     	|  1              	|  0.00027793     	|  5.4632e-05     	|
+0: |  [Callback]ModelSummary.on_validation_batch_start                                                                                                               	|  2.9823e-06     	|  90             	|  0.00026841     	|  5.2761e-05     	|
+0: |  [Callback]TQDMProgressBar.on_after_backward                               
+0:                                                                                      	|  3.0151e-06     	|  70             	|  0.00021106     	|  4.1487e-05     	|
+0: |  [Callback]ModelSummary.on_validation_start                                                                                                                     	|  6.921e-05      	|  3              	|  0.00020763     	|  4.0813e-05     	|
+0: |  [Callback]TQDMProgressBar.on_before_zero_grad                                                                                                                  	|  2.7042e-06     	|  70             	|  0.00018929     	|  3.7209e-05     	|
+0: |  [LightningModule]GraphLAM.on_validation_batch_end                                                                                                              	|  1.8777e-06     	|  90             	|  0.00016899     	|  3.3218e-05     	|
+0: |  [Callback]ModelSummary.on_train_batch_end                                                                                             
+0:                          	|  2.3944e-06     	|  70             	|  0.00016761     	|  3.2946e-05     	|
+0: |  [LightningModule]GraphLAM.on_validation_batch_start                                                                                                            	|  1.7733e-06     	|  90             	|  0.0001596      	|  3.1372e-05     	|
+0: |  [Callback]TQDMProgressBar.on_before_backward                                                                                                                   	|  2.0344e-06     	|  70             	|  0.00014241     	|  2.7993e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_after_backward        	|  1.8403e-06     	|  70             	|  0.00012882     	|  2.5321e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_validation_batch_start	|  1.3859e-06     	|  90          
+0:    	|  0.00012473     	|  2.4518e-05     	|
+0: |  [Callback]TQDMProgressBar.on_before_optimizer_step                                                                                                             	|  1.7253e-06     	|  70             	|  0.00012077     	|  2.374e-05      	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_validation_batch_end  	|  1.1879e-06     	|  90             	|  0.00010691     	|  2.1014e-05     	|
+0: |  [Callback]ModelSummary.on_after_backward                                                                                                                       	|  1.3906e-06     	|  70             	|  9.7339e-05     	|  1.9134e-05     	|
+0: |  [LightningModule]GraphLAM.on_train_batch_start                                                                                                                 	|  1.2805e-06     	|  70             	|  8.9634e-05     	|  1.7619e-05     	|
+0: |  [Callback]Mod
+0: elSummary.on_before_optimizer_step                                                                                                                	|  1.1413e-06     	|  70             	|  7.9889e-05     	|  1.5703e-05     	|
+0: |  [Strategy]DDPStrategy.on_train_batch_start                                                                                                                     	|  1.094e-06      	|  70             	|  7.6579e-05     	|  1.5053e-05     	|
+0: |  [LightningModule]GraphLAM.on_after_backward                                                                                                                    	|  1.0874e-06     	|  70             	|  7.6118e-05     	|  1.4962e-05     	|
+0: |  [Callback]ModelSummary.on_train_batch_start                                                                                                                    	|  1.0205e-06     	|  70             	|  7.1432e-05     	|  1.4041e-05     	|
+0: |  [LightningModule]GraphLAM.on_train_batch_end                             
+0:                                                                                       	|  1.0148e-06     	|  70             	|  7.1034e-05     	|  1.3963e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_before_optimizer_step 	|  1.0098e-06     	|  70             	|  7.0689e-05     	|  1.3895e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_validation_end        	|  2.2805e-05     	|  3              	|  6.8414e-05     	|  1.3448e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_train_batch_start     	|  9.7579e-07     	|  70             	|  6.8305e-05     	|  1.3426e-05     	|
+0: |  [LightningModule]GraphLAM.on_before_optimizer_step                                                                                   
+0:                           	|  9.7419e-07     	|  70             	|  6.8193e-05     	|  1.3405e-05     	|
+0: |  [Strategy]DDPStrategy.on_validation_start                                                                                                                      	|  2.2503e-05     	|  3              	|  6.751e-05      	|  1.327e-05      	|
+0: |  [LightningModule]GraphLAM.on_validation_start                                                                                                                  	|  2.2277e-05     	|  3              	|  6.683e-05      	|  1.3137e-05     	|
+0: |  [Callback]ModelSummary.on_before_zero_grad                                                                                                                     	|  9.5314e-07     	|  70             	|  6.672e-05      	|  1.3115e-05     	|
+0: |  [LightningModule]GraphLAM.on_before_zero_grad                                                                                                                  	|  8.9918e-07     	|  70         
+0:     	|  6.2943e-05     	|  1.2372e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_before_zero_grad      	|  8.571e-07      	|  70             	|  5.9997e-05     	|  1.1793e-05     	|
+0: |  [Callback]ModelSummary.on_before_backward                                                                                                                      	|  7.9736e-07     	|  70             	|  5.5815e-05     	|  1.0971e-05     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_before_backward       	|  7.3775e-07     	|  70             	|  5.1643e-05     	|  1.0151e-05     	|
+0: |  [LightningModule]GraphLAM.on_before_backward                                                                                                                   	|  7.2452e-07     	|  70             	|  5.0716e-05     	|  9.9691e-06     	|
+0: |  [Callback]Mo
+0: delCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_validation_start      	|  1.6064e-05     	|  3              	|  4.8193e-05     	|  9.4732e-06     	|
+0: |  [Callback]ModelSummary.on_validation_epoch_start                                                                                                               	|  1.0216e-05     	|  3              	|  3.0649e-05     	|  6.0245e-06     	|
+0: |  [Callback]ModelSummary.on_train_epoch_end                                                                                                                      	|  2.4598e-06     	|  10             	|  2.4598e-05     	|  4.8352e-06     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_validation_epoch_start	|  7.9122e-06     	|  3              	|  2.3737e-05     	|  4.6658e-06     	|
+0: |  [LightningDataModule]WeatherDataModule.state_dict                       
+0:                                                                                        	|  2.0559e-06     	|  10             	|  2.0559e-05     	|  4.0412e-06     	|
+0: |  [Callback]ModelSummary.on_train_epoch_start                                                                                                                    	|  2.0391e-06     	|  10             	|  2.0391e-05     	|  4.0082e-06     	|
+0: |  [Callback]TQDMProgressBar.setup                                                                                                                                	|  1.7554e-05     	|  1              	|  1.7554e-05     	|  3.4506e-06     	|
+0: |  [Callback]TQDMProgressBar.on_sanity_check_end                                                                                                                  	|  1.7374e-05     	|  1              	|  1.7374e-05     	|  3.4151e-06     	|
+0: |  [Callback]ModelSummary.on_validation_end                                                                                            
+0:                            	|  4.9298e-06     	|  3              	|  1.4789e-05     	|  2.9071e-06     	|
+0: |  [Callback]TQDMProgressBar.on_save_checkpoint                                                                                                                   	|  1.4538e-06     	|  10             	|  1.4538e-05     	|  2.8577e-06     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_train_epoch_start     	|  1.2992e-06     	|  10             	|  1.2992e-05     	|  2.5538e-06     	|
+0: |  [LightningModule]GraphLAM.on_train_epoch_start                                                                                                                 	|  1.2667e-06     	|  10             	|  1.2667e-05     	|  2.4899e-06     	|
+0: |  [LightningModule]GraphLAM.on_train_epoch_end                                                                                                                   	|  1.2576e-06     	|  10        
+0:      	|  1.2576e-05     	|  2.472e-06      	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_train_start           	|  1.2524e-05     	|  1              	|  1.2524e-05     	|  2.4619e-06     	|
+0: |  [Callback]ModelSummary.on_save_checkpoint                                                                                                                      	|  1.13e-06       	|  10             	|  1.13e-05       	|  2.2212e-06     	|
+0: |  [LightningModule]GraphLAM.on_validation_epoch_start                                                                                                            	|  3.7504e-06     	|  3              	|  1.1251e-05     	|  2.2116e-06     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_save_checkpoint       	|  1.0471e-06     	|  10             	|  1.0471e-05     	|  2.0582e-06     	|
+0: |  [Callback]M
+0: odelSummary.on_train_start                                                                                                                          	|  9.208e-06      	|  1              	|  9.208e-06      	|  1.81e-06       	|
+0: |  [Callback]TQDMProgressBar.on_validation_epoch_end                                                                                                              	|  2.5344e-06     	|  3              	|  7.6033e-06     	|  1.4946e-06     	|
+0: |  [Callback]TQDMProgressBar.on_validation_epoch_start                                                                                                            	|  2.518e-06      	|  3              	|  7.554e-06      	|  1.4849e-06     	|
+0: |  [LightningModule]GraphLAM.on_save_checkpoint                                                                                                                   	|  7.1246e-07     	|  10             	|  7.1246e-06     	|  1.4005e-06     	|
+0: |  [LightningModule]GraphLAM.on_train_start                               
+0:                                                                                         	|  5.2201e-06     	|  1              	|  5.2201e-06     	|  1.0261e-06     	|
+0: |  [Callback]ModelSummary.setup                                                                                                                                   	|  4.8997e-06     	|  1              	|  4.8997e-06     	|  9.6311e-07     	|
+0: |  [Strategy]DDPStrategy.on_train_start                                                                                                                           	|  4.7889e-06     	|  1              	|  4.7889e-06     	|  9.4133e-07     	|
+0: |  [Callback]ModelSummary.on_sanity_check_start                                                                                                                   	|  4.258e-06      	|  1              	|  4.258e-06      	|  8.3698e-07     	|
+0: |  [LightningModule]GraphLAM.on_validation_end                                                                                        
+0:                             	|  1.1285e-06     	|  3              	|  3.3854e-06     	|  6.6545e-07     	|
+0: |  [Callback]TQDMProgressBar.on_fit_start                                                                                                                         	|  3.1162e-06     	|  1              	|  3.1162e-06     	|  6.1254e-07     	|
+0: |  [LightningModule]GraphLAM.configure_callbacks                                                                                                                  	|  2.8256e-06     	|  1              	|  2.8256e-06     	|  5.5542e-07     	|
+0: |  [Callback]TQDMProgressBar.on_fit_end                                                                                                                           	|  2.8145e-06     	|  1              	|  2.8145e-06     	|  5.5323e-07     	|
+0: |  [Strategy]DDPStrategy.on_validation_end                                                                                                                        	|  9.0618e-07     	|  3        
+0:       	|  2.7185e-06     	|  5.3437e-07     	|
+0: |  [Callback]ModelSummary.on_validation_epoch_end                                                                                                                 	|  9.0494e-07     	|  3              	|  2.7148e-06     	|  5.3364e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_fit_start             	|  2.5053e-06     	|  1              	|  2.5053e-06     	|  4.9245e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_validation_epoch_end  	|  8.2143e-07     	|  3              	|  2.4643e-06     	|  4.8439e-07     	|
+0: |  [Callback]ModelSummary.on_sanity_check_end                                                                                                                     	|  2.0145e-06     	|  1              	|  2.0145e-06     	|  3.9597e-07     	|
+0: |  [Callback]
+0: ModelSummary.on_train_end                                                                                                                            	|  1.9828e-06     	|  1              	|  1.9828e-06     	|  3.8975e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_sanity_check_start    	|  1.7639e-06     	|  1              	|  1.7639e-06     	|  3.4673e-07     	|
+0: |  [Callback]TQDMProgressBar.teardown                                                                                                                             	|  1.573e-06      	|  1              	|  1.573e-06      	|  3.092e-07      	|
+0: |  [LightningDataModule]WeatherDataModule.teardown                                                                                                                	|  1.4538e-06     	|  1              	|  1.4538e-06     	|  2.8577e-07     	|
+0: |  [LightningDataModule]WeatherDataModule.prepare_data                   
+0:                                                                                          	|  1.3728e-06     	|  1              	|  1.3728e-06     	|  2.6984e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_sanity_check_end      	|  1.3225e-06     	|  1              	|  1.3225e-06     	|  2.5995e-07     	|
+0: |  [LightningModule]GraphLAM.prepare_data                                                                                                                         	|  1.0617e-06     	|  1              	|  1.0617e-06     	|  2.087e-07      	|
+0: |  [Callback]ModelSummary.teardown                                                                                                                                	|  1.0617e-06     	|  1              	|  1.0617e-06     	|  2.087e-07      	|
+0: |  [Callback]ModelSummary.on_fit_end                                                                                                 
+0:                              	|  1.0524e-06     	|  1              	|  1.0524e-06     	|  2.0687e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.teardown                 	|  1.0319e-06     	|  1              	|  1.0319e-06     	|  2.0284e-07     	|
+0: |  [LightningModule]GraphLAM.on_fit_end                                                                                                                           	|  1.0021e-06     	|  1              	|  1.0021e-06     	|  1.9698e-07     	|
+0: |  [LightningModule]GraphLAM.on_fit_start                                                                                                                         	|  9.9186e-07     	|  1              	|  9.9186e-07     	|  1.9497e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_fit_end               	|  9.6206e-07     	|  1       
+0:        	|  9.6206e-07     	|  1.8911e-07     	|
+0: |  [LightningModule]GraphLAM.on_train_end                                                                                                                         	|  9.3039e-07     	|  1              	|  9.3039e-07     	|  1.8288e-07     	|
+0: |  [Callback]ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}.on_train_end             	|  9.2201e-07     	|  1              	|  9.2201e-07     	|  1.8124e-07     	|
+0: |  [LightningModule]GraphLAM.teardown                                                                                                                             	|  7.702e-07      	|  1              	|  7.702e-07      	|  1.514e-07      	|
+0: |  [Strategy]DDPStrategy.on_train_end                                                                                                                             	|  7.3109e-07     	|  1              	|  7.3109e-07     	|  1.4371e-07     	|
+0: ------------
+0: --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+0: 
+0: wandb: 
+0: wandb: Run history:
+0: wandb:               epoch ▁▁▁▁▂▂▂▂▃▃▃▃▃▃▃▃▄▄▄▄▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇████
+0: wandb:    train_loss_epoch █▅▅▄▃▃▂▂▁▁
+0: wandb:     train_loss_step ██▇▅▅▆▄▆▄▆▇▅▄▄▃▅▄▄▃▅▅▅▂▃▄▅▂▄▃▃▄▂▅▂▂▂▁▃▆▆
+0: wandb: trainer/global_step ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
+0: wandb:   val_loss_unroll01 ▁█
+0: wandb:   val_loss_unroll02 ▁█
+0: wandb:   val_loss_unroll03 ▁█
+0: wandb:   val_loss_unroll04 ▁█
+0: wandb:   val_loss_unroll05 ▁█
+0: wandb:   val_loss_unroll06 ▁█
+0: wandb:   val_loss_unroll07 ▁█
+0: wandb:   val_loss_unroll08 ▁█
+0: wandb:   val_loss_unroll09 ▁█
+0: wandb:   val_loss_unroll10 ▁█
+0: wandb:   val_loss_unroll11 ▁█
+0: wandb:   val_loss_unroll12 ▁█
+0: wandb:   val_loss_unroll13 ▁█
+0: wandb:   val_loss_unroll14 ▁█
+0: wandb:   val_loss_
+0: unroll15 ▁█
+0: wandb:   val_loss_unroll16 ▁█
+0: wandb:   val_loss_unroll17 ▁█
+0: wandb:   val_loss_unroll18 ▁█
+0: wandb:   val_loss_unroll19 ▁█
+0: wandb:   val_loss_unroll20 ▁█
+0: wandb:   val_loss_unroll21 ▁█
+0: wandb:   val_loss_unroll22 ▁█
+0: wandb:   val_loss_unroll23 ▁█
+0: wandb:       val_mean_loss ▁█
+0: wandb: 
+0: wandb: Run summary:
+0: wandb:               epoch 9
+0: wandb:    train_loss_epoch 0.85227
+0: wandb:     train_loss_step 0.96182
+0: wandb: trainer/global_step 69
+0: wandb: 
+0: wandb: You can sync this run to the cloud by running:
+0: wandb: wandb sync /users/sadamov/pyprojects/neural-cosmo/wandb/offline-run-20240126_050647-gz03t9mr
+0: wandb: Find logs at: ./wandb/offline-run-20240126_050647-gz03t9mr/logs

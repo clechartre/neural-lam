@@ -15,7 +15,7 @@ ENV_NAME="${DEFAULT_ENV_NAME}"
 PYVERSION=3.10
 PINNED=true
 EXPORT=false
-CONDA=conda
+CONDA=mamba
 HELP=false
 
 help_msg="Usage: $(basename "${0}") [-n NAME] [-p VER] [-u] [-e] [-m] [-h]

@@ -9,7 +9,7 @@ dependencies:
   - pip>=22.3
   - Cartopy
   - dask
-  - imageio
+  # - image
   - ipython
   - matplotlib
   - netcdf4
@@ -46,7 +46,7 @@ dependencies:
   - isort>=5.12
   - mccabe>=0.7
   - mypy>=0.991
-  - mamba>=1.1
+  # - mamba>=1.1
   - pre-commit>=2.20
   - pydocstyle>=6.1
   - pylint>=2.15

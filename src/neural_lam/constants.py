@@ -94,7 +94,6 @@ is_3d = {
 }
 
 # Vertical level weights
-# TODO: exponential function of height
 level_weights = {
     1: 1,
     5: 1,
