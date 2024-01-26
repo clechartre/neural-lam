@@ -34,11 +34,11 @@ dependencies:
   # runtime
   - click>=8.1  # for sample code
   # development
-  - anaconda-client>=1.11
+  # - anaconda-client>=1.11
   - black>=22.10
   - boa>=0.14
   - codespell>=2.2
-  - conda-build>=3.23
+  # - conda-build>=3.23
   - flake8>=6.0
   - flake8-black>=0.3
   - ipdb>=0.13
@@ -46,7 +46,7 @@ dependencies:
   - isort>=5.12
   - mccabe>=0.7
   - mypy>=0.991
-  - mamba>=1.1
+  # - mamba>=1.1
   - pre-commit>=2.20
   - pydocstyle>=6.1
   - pylint>=2.15
