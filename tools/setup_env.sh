@@ -12,7 +12,6 @@ DEFAULT_ENV_NAME="neural-lam"
 
 # Default options
 ENV_NAME="${DEFAULT_ENV_NAME}"
-PYVERSION=3.10
 PINNED=true
 EXPORT=false
 CONDA=mamba
@@ -22,7 +21,6 @@ help_msg="Usage: $(basename "${0}") [-n NAME] [-p VER] [-u] [-e] [-m] [-h]
 
 Options:
  -n NAME    Env name [default: ${DEFAULT_ENV_NAME}
- -p VER     Python version [default: ${PYVERSION}]
  -u         Use unpinned requirements (minimal version restrictions)
  -e         Export environment files (requires -u)
  -m         Use mamba instead of conda
@@ -33,7 +31,6 @@ Options:
 while getopts n:p:defhimu flag; do
     case ${flag} in
         n) ENV_NAME=${OPTARG} ;;
-        p) PYVERSION=${OPTARG} ;;
         e) EXPORT=true ;;
         h) HELP=true ;;
         m) CONDA=mamba ;;
@@ -54,17 +51,13 @@ echo "Setting up environment for installation"
 eval "$(conda shell.bash hook)" || exit  # NOT ${CONDA} (doesn't work with mamba)
 conda activate || exit # NOT ${CONDA} (doesn't work with mamba)
 
-# Create new env; pass -f to overwriting any existing one
-echo "Creating ${CONDA} environment"
-${CONDA} create -n ${ENV_NAME} python=${PYVERSION} --yes || exit
-
 # Install requirements in new env
 if ${PINNED}; then
     echo "Pinned installation"
-    ${CONDA} env update --name ${ENV_NAME} --file requirements/environment.yml || exit
+    ${CONDA} env create --name ${ENV_NAME} --file requirements/environment.yml || exit
 else
     echo "Unpinned installation"
-    ${CONDA} env update --name ${ENV_NAME} --file requirements/requirements.yml || exit
+    ${CONDA} env create --name ${ENV_NAME} --file requirements/requirements.yml || exit
     if ${EXPORT}; then
         echo "Export pinned prod environment"
         ${CONDA} env export --name ${ENV_NAME} --no-builds | \grep -v '^prefix:' >requirements/environment.yml  || exit

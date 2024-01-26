@@ -1,3 +1,4 @@
+# Third-party
 import numpy as np
 from cartopy import crs as ccrs
 
@@ -5,92 +6,90 @@ wandb_project = "neural-lam"
 
 # Full names
 param_names = [
-    'Temperature',
-    'Zonal wind component',
-    'Meridional wind component',
-    'Relative humidity',
-    'Pressure at Mean Sea Level',
-    'Pressure Perturbation',
-    'Surface Pressure',
-    'Total Precipitation',
-    'Total Water Vapor content',
-    '2-meter Temperature',
-    '10-meter Zonal wind speed',
-    '10-meter Meridional wind speed',
+    "Temperature",
+    "Zonal wind component",
+    "Meridional wind component",
+    "Relative humidity",
+    "Pressure at Mean Sea Level",
+    "Pressure Perturbation",
+    "Surface Pressure",
+    "Total Precipitation",
+    "Total Water Vapor content",
+    "2-meter Temperature",
+    "10-meter Zonal wind speed",
+    "10-meter Meridional wind speed",
 ]
 
 # Short names
 param_names_short = [
-    'T',
-    'U',
-    'V',
-    'RELHUM',
-    'PMSL',
-    'PP',
-    'PS',
-    'TOT_PREC',
-    'TQV',
-    'T_2M',
-    'U_10M',
-    'V_10M',
+    "T",
+    "U",
+    "V",
+    "RELHUM",
+    "PMSL",
+    "PP",
+    "PS",
+    "TOT_PREC",
+    "TQV",
+    "T_2M",
+    "U_10M",
+    "V_10M",
 ]
 
 # Units
 param_units = [
-    'K',
-    'm/s',
-    'm/s',
-    'Perc.',
-    'Pa',
-    'hPa',
-    'Pa',
-    '$kg/m^2$',
-    '$kg/m^2$',
-    'K',
-    'm/s',
-    'm/s',
+    "K",
+    "m/s",
+    "m/s",
+    "Perc.",
+    "Pa",
+    "hPa",
+    "Pa",
+    "$kg/m^2$",
+    "$kg/m^2$",
+    "K",
+    "m/s",
+    "m/s",
 ]
 
 # Parameter weights
 param_weights = {
-    'T': 1,
-    'U': 1,
-    'V': 1,
-    'RELHUM': 1,
-    'PMSL': 1,
-    'PP': 1,
-    'PS': 1,
-    'TOT_PREC': 1,
-    'TQV': 1,
-    'T_2M': 1,
-    'U_10M': 1,
-    'V_10M': 1,
+    "T": 1,
+    "U": 1,
+    "V": 1,
+    "RELHUM": 1,
+    "PMSL": 1,
+    "PP": 1,
+    "PS": 1,
+    "TOT_PREC": 1,
+    "TQV": 1,
+    "T_2M": 1,
+    "U_10M": 1,
+    "V_10M": 1,
 }
 
 # Vertical levels
-vertical_levels = [
-    1, 5, 13, 22, 38, 41, 60
-]
+vertical_levels = [1, 5, 13, 22, 38, 41, 60]
 
 param_constraints = {
-    'RELHUM': (0, 100),
-    'TQV': (0, None),
-    'TOT_PREC': (0, None),
+    "RELHUM": (0, 100),
+    "TQV": (0, None),
+    "TOT_PREC": (0, None),
 }
 
 is_3d = {
-    'T': 1,
-    'U': 1,
-    'V': 1,
-    'RELHUM': 1,
-    'PMSL': 0,
-    'PP': 1,
-    'PS': 0,
-    'TOT_PREC': 0,
-    'TQV': 0,
-    'T_2M': 0,  # TODO: these 2d field diagnostic variables could be removed from input channels, and derived during inference
-    'U_10M': 0,
-    'V_10M': 0,
+    "T": 1,
+    "U": 1,
+    "V": 1,
+    "RELHUM": 1,
+    "PMSL": 0,
+    "PP": 1,
+    "PS": 0,
+    "TOT_PREC": 0,
+    "TQV": 0,
+    "T_2M": 0,  # TODO: these 2d field diagnostic variables could be removed from input channels, and derived during inference
+    "U_10M": 0,
+    "V_10M": 0,
 }
 
 # Vertical level weights

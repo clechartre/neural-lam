@@ -1,7 +1,9 @@
+# Third-party
 import torch
 import torch_geometric as pyg
 from torch import nn
 
+# First-party
 from neural_lam import utils
 
 
@@ -10,8 +12,17 @@ class InteractionNet(pyg.nn.MessagePassing):
     Implementation of a generic Interaction Network, from Battaglia et al. (2016)
     """
 
-    def __init__(self, edge_index, input_dim, update_edges=True, hidden_layers=1,
-                 hidden_dim=None, edge_chunk_sizes=None, aggr_chunk_sizes=None, aggr="sum"):
+    def __init__(
+        self,
+        edge_index,
+        input_dim,
+        update_edges=True,
+        hidden_layers=1,
+        hidden_dim=None,
+        edge_chunk_sizes=None,
+        aggr_chunk_sizes=None,
+        aggr="sum",
+    ):
         """
         Create a new InteractionNet
 
@@ -47,14 +58,18 @@ class InteractionNet(pyg.nn.MessagePassing):
         if edge_chunk_sizes is None:
             self.edge_mlp = utils.make_mlp(edge_mlp_recipe)
         else:
-            self.edge_mlp = SplitMLPs([utils.make_mlp(edge_mlp_recipe) for _ in
-                                       edge_chunk_sizes], edge_chunk_sizes)
+            self.edge_mlp = SplitMLPs(
+                [utils.make_mlp(edge_mlp_recipe) for _ in edge_chunk_sizes],
+                edge_chunk_sizes,
+            )
 
         if aggr_chunk_sizes is None:
             self.aggr_mlp = utils.make_mlp(aggr_mlp_recipe)
         else:
-            self.aggr_mlp = SplitMLPs([utils.make_mlp(aggr_mlp_recipe) for _ in
-                                       aggr_chunk_sizes], aggr_chunk_sizes)
+            self.aggr_mlp = SplitMLPs(
+                [utils.make_mlp(aggr_mlp_recipe) for _ in aggr_chunk_sizes],
+                aggr_chunk_sizes,
+            )
 
         self.update_edges = update_edges
 
@@ -75,8 +90,9 @@ class InteractionNet(pyg.nn.MessagePassing):
         # aggregate to rec_nodes
         # TODO: edge_index to device?
         node_reps = torch.cat((rec_rep, send_rep), dim=1)
-        edge_rep_aggr, edge_diff = self.propagate(self.edge_index, x=node_reps,
-                                                  edge_attr=edge_rep)
+        edge_rep_aggr, edge_diff = self.propagate(
+            self.edge_index, x=node_reps, edge_attr=edge_rep
+        )
         rec_diff = self.aggr_mlp(torch.cat((rec_rep, edge_rep_aggr), dim=-1))
 
         # Residual connections
@@ -113,8 +129,9 @@ class SplitMLPs(nn.Module):
 
     def __init__(self, mlps, chunk_sizes):
         super().__init__()
-        assert len(mlps) == len(chunk_sizes), (
-            "Number of MLPs must match the number of chunks")
+        assert len(mlps) == len(
+            chunk_sizes
+        ), "Number of MLPs must match the number of chunks"
 
         self.mlps = nn.ModuleList(mlps)
         self.chunk_sizes = chunk_sizes
@@ -129,6 +146,7 @@ class SplitMLPs(nn.Module):
         joined_output: (..., N, d), concatenated results from the different MLPs
         """
         chunks = torch.split(x, self.chunk_sizes, dim=-2)
-        chunk_outputs = [mlp(chunk_input)
-                         for mlp, chunk_input in zip(self.mlps, chunks)]
+        chunk_outputs = [
+            mlp(chunk_input) for mlp, chunk_input in zip(self.mlps, chunks)
+        ]
         return torch.cat(chunk_outputs, dim=-2)

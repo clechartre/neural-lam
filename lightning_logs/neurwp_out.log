@@ -19,15 +19,15 @@
 2: Data subset of 200 samples starts on the 2020010209
 0: Data subset of 200 samples starts on the 2020010209
 0: Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-0: Sanity Checking:   0% 0/2 [00:00<?, ?it/s]        
+0: Sanity Checking:   0% 0/2 [00:00<?, ?it/s]
 0: Sanity Checking DataLoader 0:   0% 0/2 [00:00<?, ?it/s]
 0: Sanity Checking DataLoader 0:  50% 1/2 [00:13<00:13, 13.08s/it]
 0: Sanity Checking DataLoader 0: 100% 2/2 [00:15<00:00,  7.79s/it]
-0:                                                                
-0: 
+0:
+0:
 0: Training: |          | 0/? [00:00<?, ?it/s]
-0: Training:   0% 0/7 [00:00<?, ?it/s]        
-0: Epoch 0:   0% 0/7 [00:00<?, ?it/s] 
+0: Training:   0% 0/7 [00:00<?, ?it/s]
+0: Epoch 0:   0% 0/7 [00:00<?, ?it/s]
 0: Epoch 0:  14% 1/7 [00:15<01:32, 15.48s/it]
 0: Epoch 0:  14% 1/7 [00:15<01:32, 15.48s/it, v_num=t9mr, train_loss_step=1.030]
 0: Epoch 0:  29% 2/7 [00:16<00:42,  8.44s/it, v_num=t9mr, train_loss_step=1.030]
@@ -42,7 +42,7 @@
 0: Epoch 0: 100% 7/7 [00:22<00:00,  3.21s/it, v_num=t9mr, train_loss_step=0.917]
 0: Epoch 0: 100% 7/7 [00:22<00:00,  3.21s/it, v_num=t9mr, train_loss_step=1.020]
 0: Epoch 0: 100% 7/7 [00:22<00:00,  3.21s/it, v_num=t9mr, train_loss_step=1.020, train_loss_epoch=0.986]
-0: Epoch 0:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=1.020, train_loss_epoch=0.986]        
+0: Epoch 0:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=1.020, train_loss_epoch=0.986]
 0: Epoch 1:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=1.020, train_loss_epoch=0.986]
 0: Epoch 1:  14% 1/7 [00:13<01:19, 13.19s/it, v_num=t9mr, train_loss_step=1.020, train_loss_epoch=0.986]
 0: Epoch 1:  14% 1/7 [00:13<01:19, 13.19s/it, v_num=t9mr, train_loss_step=0.946, train_loss_epoch=0.986]
@@ -56,7 +56,7 @@
 0: Epoch 1:  86% 6/7 [00:19<00:03,  3.25s/it, v_num=t9mr, train_loss_step=0.955, train_loss_epoch=0.986]
 0: Epoch 1: 100% 7/7 [00:19<00:00,  2.85s/it, v_num=t9mr, train_loss_step=0.955, train_loss_epoch=0.986]Epoch 1: 100% 7/7 [00:19<00:00,  2.85s/it, v_num=t9mr, train_loss_step=0.917, train_loss_epoch=0.986]
 0: Epoch 1: 100% 7/7 [00:19<00:00,  2.85s/it, v_num=t9mr, train_loss_step=0.917, train_loss_epoch=0.937]
-0: Epoch 1:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.917, train_loss_epoch=0.937]        
+0: Epoch 1:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.917, train_loss_epoch=0.937]
 0: Epoch 2:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.917, train_loss_epoch=0.937]
 0: Epoch 2:  14% 1/7 [00:13<01:18, 13.14s/it, v_num=t9mr, train_loss_step=0.917, train_loss_epoch=0.937]Epoch 2:  14% 1/7 [00:13<01:18, 13.14s/it, v_num=t9mr, train_loss_step=0.902, train_loss_epoch=0.937]
 0: Epoch 2:  29% 2/7 [00:14<00:36,  7.21s/it, v_num=t9mr, train_loss_step=0.902, train_loss_epoch=0.937]
@@ -71,7 +71,7 @@
 0: Epoch 2: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.911, train_loss_epoch=0.937]
 0: Epoch 2: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.878, train_loss_epoch=0.937]
 0: Epoch 2: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.878, train_loss_epoch=0.923]
-0: Epoch 2:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.878, train_loss_epoch=0.923]        
+0: Epoch 2:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.878, train_loss_epoch=0.923]
 0: Epoch 3:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.878, train_loss_epoch=0.923]
 0: Epoch 3:  14% 1/7 [00:13<01:18, 13.07s/it, v_num=t9mr, train_loss_step=0.878, train_loss_epoch=0.923]
 0: Epoch 3:  14% 1/7 [00:13<01:18, 13.07s/it, v_num=t9mr, train_loss_step=0.896, train_loss_epoch=0.923]
@@ -87,7 +87,7 @@
 0: Epoch 3: 100% 7/7 [00:19<00:00,  2.82s/it, v_num=t9mr, train_loss_step=0.937, train_loss_epoch=0.923]
 0: Epoch 3: 100% 7/7 [00:19<00:00,  2.82s/it, v_num=t9mr, train_loss_step=0.752, train_loss_epoch=0.923]
 0: Epoch 3: 100% 7/7 [00:19<00:00,  2.82s/it, v_num=t9mr, train_loss_step=0.752, train_loss_epoch=0.903]
-0: Epoch 3:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.752, train_loss_epoch=0.903]        
+0: Epoch 3:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.752, train_loss_epoch=0.903]
 0: Epoch 4:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.752, train_loss_epoch=0.903]
 0: Epoch 4:  14% 1/7 [00:13<01:19, 13.19s/it, v_num=t9mr, train_loss_step=0.752, train_loss_epoch=0.903]
 0: Epoch 4:  14% 1/7 [00:13<01:19, 13.19s/it, v_num=t9mr, train_loss_step=0.871, train_loss_epoch=0.903]
@@ -102,150 +102,150 @@
 0: Epoch 4:  86% 6/7 [00:19<00:03,  3.27s/it, v_num=t9mr, train_loss_step=1.000, train_loss_epoch=0.903]Epoch 4:  86% 6/7 [00:19<00:03,  3.27s/it, v_num=t9mr, train_loss_step=0.933, train_loss_epoch=0.903]
 0: Epoch 4: 100% 7/7 [00:20<00:00,  2.86s/it, v_num=t9mr, train_loss_step=0.933, train_loss_epoch=0.903]
 0: Epoch 4: 100% 7/7 [00:20<00:00,  2.86s/it, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.903]
-0: 
+0:
 0: Validation: |          | 0/? [00:00<?, ?it/s]
 0: [A
-0: 
+0:
 0: Validation:   0% 0/44 [00:00<?, ?it/s]       [A
 0: Validation DataLoader 0:   0% 0/44 [00:00<?, ?it/s][A
-0: 
+0:
 0: Validation DataLoader 0:   2% 1/44 [00:02<01:56,  2.71s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   5% 2/44 [00:08<02:50,  4.06s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   7% 3/44 [00:10<02:24,  3.51s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   9% 4/44 [00:13<02:12,  3.31s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  11% 5/44 [00:16<02:08,  3.30s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  14% 6/44 [00:19<02:00,  3.18s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  16% 7/44 [00:21<01:52,  3.05s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  18% 8/44 [00:24<01:48,  3.02s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  20% 9/44 [00:26<01:44,  3.00s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  23% 10/44 [00:29<01:40,  2.95s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  25% 11/44 [00:31<01:35,  2.91s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  27% 12/44 [00:34<01:31,  2.87s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  30% 13/44 [00:36<01:28,  2.84s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  32% 14/44 [00:39<01:23,  2.80s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  34% 15/44 [00:41<01:20,  2.76s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  36% 16/44 [00:43<01:16,  2.73s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  39% 17/44 [00:45<01:12,  2.70s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  41% 18/44 [00:48<01:09,  2.68s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  43% 19/44 [00:50<01:06,  2.66s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  45% 20/44 [00:52<01:03,  2.64s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  48% 21/44 [00:55<01:00,  2.62s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  50% 22/44 [00:57<00:57,  2.60s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  52% 23/44 [00:59<00:54,  2.59s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  55% 24/44 [01:01<00:51,  2.57s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  57% 25/44 [01:04<00:48,  2.56s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  59% 26/44 [01:06<00:45,  2.55s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  61% 27/44 [01:08<00:43,  2.55s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  64% 28/44 [01:11<00:40,  2.54s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  66% 29/44 [01:13<00:37,  2.53s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  68% 30/44 [01:15<00:35,  2.52s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  70% 31/44 [01:17<00:32,  2.51s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  73% 32/44 [01:20<00:30,  2.51s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  75% 33/44 [01:22<00:27,  2.50s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  77% 34/44 [01:24<00:24,  2.49s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  80% 35/44 [01:26<00:22,  2.47s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  82% 36/44 [01:28<00:19,  2.46s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  84% 37/44 [01:30<00:17,  2.45s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  86% 38/44 [01:32<00:14,  2.44s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  89% 39/44 [01:35<00:12,  2.44s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  91% 40/44 [01:37<00:09,  2.43s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  93% 41/44 [01:39<00:07,  2.42s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  95% 42/44 [01:41<00:04,  2.41s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  98% 43/44 [01:43<00:02,  2.40s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0: 100% 44/44 [01:45<00:00,  2.40s/it]
 0: [A
-0: 
-0:                                                             
+0:
+0:
 0: [A
 0: Epoch 4: 100% 7/7 [02:27<00:00, 21.03s/it, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.903]
 0: Epoch 4: 100% 7/7 [02:27<00:00, 21.04s/it, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.895]
-0: Epoch 4:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.895]        
+0: Epoch 4:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.895]
 0: Epoch 5:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.895]
 0: Epoch 5:  14% 1/7 [00:13<01:18, 13.09s/it, v_num=t9mr, train_loss_step=0.847, train_loss_epoch=0.895]
 0: Epoch 5:  14% 1/7 [00:13<01:18, 13.09s/it, v_num=t9mr, train_loss_step=0.914, train_loss_epoch=0.895]
@@ -262,7 +262,7 @@
 0: Epoch 5: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.836, train_loss_epoch=0.895]
 0: Epoch 5: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.974, train_loss_epoch=0.895]
 0: Epoch 5: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.974, train_loss_epoch=0.885]
-0: Epoch 5:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.974, train_loss_epoch=0.885]        
+0: Epoch 5:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.974, train_loss_epoch=0.885]
 0: Epoch 6:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.974, train_loss_epoch=0.885]
 0: Epoch 6:  14% 1/7 [00:13<01:19, 13.29s/it, v_num=t9mr, train_loss_step=0.974, train_loss_epoch=0.885]
 0: Epoch 6:  14% 1/7 [00:13<01:19, 13.30s/it, v_num=t9mr, train_loss_step=0.879, train_loss_epoch=0.885]
@@ -277,7 +277,7 @@
 0: Epoch 6: 100% 7/7 [00:20<00:00,  2.88s/it, v_num=t9mr, train_loss_step=0.906, train_loss_epoch=0.885]
 0: Epoch 6: 100% 7/7 [00:20<00:00,  2.88s/it, v_num=t9mr, train_loss_step=0.953, train_loss_epoch=0.885]
 0: Epoch 6: 100% 7/7 [00:20<00:00,  2.88s/it, v_num=t9mr, train_loss_step=0.953, train_loss_epoch=0.872]
-0: Epoch 6:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.953, train_loss_epoch=0.872]        
+0: Epoch 6:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.953, train_loss_epoch=0.872]
 0: Epoch 7:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.953, train_loss_epoch=0.872]
 0: Epoch 7:  14% 1/7 [00:13<01:19, 13.33s/it, v_num=t9mr, train_loss_step=0.953, train_loss_epoch=0.872]
 0: Epoch 7:  14% 1/7 [00:13<01:19, 13.33s/it, v_num=t9mr, train_loss_step=0.851, train_loss_epoch=0.872]
@@ -293,7 +293,7 @@
 0: Epoch 7: 100% 7/7 [00:20<00:00,  2.87s/it, v_num=t9mr, train_loss_step=0.821, train_loss_epoch=0.872]
 0: Epoch 7: 100% 7/7 [00:20<00:00,  2.87s/it, v_num=t9mr, train_loss_step=0.975, train_loss_epoch=0.872]
 0: Epoch 7: 100% 7/7 [00:20<00:00,  2.87s/it, v_num=t9mr, train_loss_step=0.975, train_loss_epoch=0.866]
-0: Epoch 7:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.975, train_loss_epoch=0.866]        
+0: Epoch 7:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.975, train_loss_epoch=0.866]
 0: Epoch 8:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.975, train_loss_epoch=0.866]
 0: Epoch 8:  14% 1/7 [00:13<01:19, 13.25s/it, v_num=t9mr, train_loss_step=0.975, train_loss_epoch=0.866]
 0: Epoch 8:  14% 1/7 [00:13<01:19, 13.26s/it, v_num=t9mr, train_loss_step=0.910, train_loss_epoch=0.866]
@@ -309,7 +309,7 @@
 0: Epoch 8: 100% 7/7 [00:19<00:00,  2.85s/it, v_num=t9mr, train_loss_step=0.825, train_loss_epoch=0.866]
 0: Epoch 8: 100% 7/7 [00:19<00:00,  2.85s/it, v_num=t9mr, train_loss_step=0.861, train_loss_epoch=0.866]
 0: Epoch 8: 100% 7/7 [00:19<00:00,  2.85s/it, v_num=t9mr, train_loss_step=0.861, train_loss_epoch=0.860]
-0: Epoch 8:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.861, train_loss_epoch=0.860]        
+0: Epoch 8:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.861, train_loss_epoch=0.860]
 0: Epoch 9:   0% 0/7 [00:00<?, ?it/s, v_num=t9mr, train_loss_step=0.861, train_loss_epoch=0.860]
 0: Epoch 9:  14% 1/7 [00:13<01:18, 13.14s/it, v_num=t9mr, train_loss_step=0.861, train_loss_epoch=0.860]
 0: Epoch 9:  14% 1/7 [00:13<01:18, 13.14s/it, v_num=t9mr, train_loss_step=0.769, train_loss_epoch=0.860]
@@ -324,152 +324,152 @@
 0: Epoch 9:  86% 6/7 [00:19<00:03,  3.24s/it, v_num=t9mr, train_loss_step=0.882, train_loss_epoch=0.860]
 0: Epoch 9: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.882, train_loss_epoch=0.860]
 0: Epoch 9: 100% 7/7 [00:19<00:00,  2.84s/it, v_num=t9mr, train_loss_step=0.962, train_loss_epoch=0.860]
-0: 
+0:
 0: Validation: |          | 0/? [00:00<?, ?it/s]
 0: [A
-0: 
-0: Validation:   0% 0/44 [00:00<?, ?it/s]       
+0:
+0: Validation:   0% 0/44 [00:00<?, ?it/s]
 0: [A
 0: Validation DataLoader 0:   0% 0/44 [00:00<?, ?it/s]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   2% 1/44 [00:02<01:35,  2.22s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   5% 2/44 [00:08<03:02,  4.35s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   7% 3/44 [00:12<02:45,  4.05s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:   9% 4/44 [00:14<02:26,  3.67s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  11% 5/44 [00:18<02:20,  3.61s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  14% 6/44 [00:21<02:17,  3.61s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  16% 7/44 [00:24<02:09,  3.49s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  18% 8/44 [00:27<02:01,  3.38s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  20% 9/44 [00:29<01:54,  3.28s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  23% 10/44 [00:32<01:49,  3.21s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  25% 11/44 [00:34<01:43,  3.14s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  27% 12/44 [00:36<01:38,  3.08s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  30% 13/44 [00:39<01:33,  3.02s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  32% 14/44 [00:41<01:29,  2.97s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  34% 15/44 [00:43<01:24,  2.92s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  36% 16/44 [00:46<01:20,  2.88s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  39% 17/44 [00:48<01:16,  2.85s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  41% 18/44 [00:50<01:13,  2.81s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  43% 19/44 [00:53<01:09,  2.79s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  45% 20/44 [00:55<01:06,  2.76s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  48% 21/44 [00:57<01:03,  2.74s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  50% 22/44 [00:59<00:59,  2.72s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  52% 23/44 [01:02<00:56,  2.70s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  55% 24/44 [01:04<00:53,  2.69s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  57% 25/44 [01:06<00:50,  2.67s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  59% 26/44 [01:09<00:47,  2.66s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  61% 27/44 [01:11<00:44,  2.64s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  64% 28/44 [01:13<00:42,  2.63s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  66% 29/44 [01:15<00:39,  2.62s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  68% 30/44 [01:18<00:36,  2.61s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  70% 31/44 [01:20<00:33,  2.60s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  73% 32/44 [01:22<00:31,  2.59s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  75% 33/44 [01:25<00:28,  2.58s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  77% 34/44 [01:27<00:25,  2.57s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  80% 35/44 [01:29<00:22,  2.55s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  82% 36/44 [01:31<00:20,  2.54s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  84% 37/44 [01:33<00:17,  2.53s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  86% 38/44 [01:35<00:15,  2.52s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  89% 39/44 [01:37<00:12,  2.51s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  91% 40/44 [01:39<00:09,  2.50s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  93% 41/44 [01:41<00:07,  2.49s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  95% 42/44 [01:44<00:04,  2.48s/it]
 0: [A
-0: 
+0:
 0: Validation DataLoader 0:  98% 43/44 [01:46<00:02,  2.47s/it][A
-0: 
+0:
 0: Validation DataLoader 0: 100% 44/44 [01:48<00:00,  2.46s/it]
 0: [A
-0: 
-0:                                                             
+0:
+0:
 0: [A
 0: Epoch 9: 100% 7/7 [02:23<00:00, 20.56s/it, v_num=t9mr, train_loss_step=0.962, train_loss_epoch=0.860]
 0: Epoch 9: 100% 7/7 [02:23<00:00, 20.57s/it, v_num=t9mr, train_loss_step=0.962, train_loss_epoch=0.852]
 0: Epoch 9: 100% 7/7 [02:24<00:00, 20.57s/it, v_num=t9mr, train_loss_step=0.962, train_loss_epoch=0.852]
-0: 
+0:
 1: <pytorch_lightning.profilers.simple.SimpleProfiler object at 0x15536fdaa4d0>
 3: <pytorch_lightning.profilers.simple.SimpleProfiler object at 0x15542f9d7d10>
 2: <pytorch_lightning.profilers.simple.SimpleProfiler object at 0x14a3a7e98190>
