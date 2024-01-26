@@ -1,4 +1,4 @@
-name: neural-lam_1
+name: neural-lam
 channels:
   - nvidia
   - pytorch
@@ -449,5 +449,5 @@ dependencies:
       - questionary==2.0.1
       - rstcheck-core==1.0.3
       - sphinx-mdinclude==0.5.3
-      - tueplots==0.0.12
+      - tueplots==0.0.13
       - types-docutils==0.19.1.9
