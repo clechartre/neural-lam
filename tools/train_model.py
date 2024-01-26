@@ -1,4 +1,5 @@
 import os
+import resource
 import time
 from argparse import ArgumentParser
 
@@ -45,20 +46,28 @@ def init_wandb(args):
             name=run_name,
             project=constants.wandb_project,
             config=args,
+            mode=args.wandb_mode
         )
-        logger = pl.loggers.WandbLogger(project=constants.wandb_project, name=run_name,
-                                        config=args)
+        logger = pl.loggers.WandbLogger(
+            project=constants.wandb_project,
+            name=run_name,
+            config=args,
+            log_model=True)
+        wandb.save("slurm_train.sh")
+        wandb.save("neural_lam/constants.py")
     else:
         wandb.init(
             project=constants.wandb_project,
             config=args,
             id=args.resume_run,
-            resume='must'
+            resume='must',
+            mode=args.wandb_mode
         )
         logger = pl.loggers.WandbLogger(
             project=constants.wandb_project,
             id=args.resume_run,
-            config=args)
+            config=args,
+            log_model=True)
 
     return logger
 
@@ -90,9 +99,13 @@ def main():
                         help='Path to load model parameters from (default: None)')
     parser.add_argument('--resume_run', type=str,
                         help='Run ID to resume (default: None)')
+    parser.add_argument('--resume_opt_sched', type=int, default=0,
+                        help='Resume optimizer and scheduler state (default: 0=false)')
     parser.add_argument(
         '--precision', type=str, default=32,
         help='Numerical precision to use for model (32/16/bf16) (default: 32)')
+    parser.add_argument('--wandb_mode', type=str, default="online",
+                        help='Wandb mode (online/offline/dryrun) (default: online)')
 
     # Model architecture
     parser.add_argument(
@@ -138,6 +151,8 @@ def main():
     assert args.eval in (None, "val", "test"), f"Unknown eval setting: {args.eval}"
     assert args.loss in ("mse", "mae", "huber"), f"Unknown loss function: {args.loss}"
 
+    resource.setrlimit(resource.RLIMIT_CORE, (0, resource.RLIM_INFINITY))
+
     # Set seed
     seed.seed_everything(args.seed)
 
@@ -160,20 +175,21 @@ def main():
     result = init_wandb(args)
     if result is not None:
         logger = result
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            dirpath=logger.experiment.dir,
-            filename="latest",
-            every_n_epochs=1,
-            save_on_train_epoch_end=True,
-        )
+        checkpoint_dir = logger.experiment.dir
     else:
         logger = None
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            dirpath="saved_models",
-            filename="latest",
-            every_n_epochs=1,
-            save_on_train_epoch_end=True,
-        )
+        checkpoint_dir = "lightning_logs"
+
+    # Ensure the checkpoint directory exists
+    os.makedirs(checkpoint_dir, exist_ok=True)
+
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        dirpath=checkpoint_dir,
+        filename="{epoch}",
+        every_n_epochs=1,
+        save_on_train_epoch_end=True,
+        verbose=True,
+    )
 
     if args.eval:
         use_distributed_sampler = False
@@ -201,9 +217,9 @@ def main():
         devices=devices,
         num_nodes=num_nodes,
         profiler="simple",
+        deterministic=True,
         # num_sanity_val_steps=0
         # strategy="ddp",
-        # deterministic=True,
         # limit_val_batches=0
         # fast_dev_run=True
     )

@@ -9,7 +9,7 @@ from neural_lam.rotate_grid import unrotate_latlon
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def plot_error_map(errors, title=None, step_length=1):
+def plot_error_map(errors, global_mean, title=None, step_length=1):
     """
     Plot a heatmap of errors of different variables at different predictions horizons
     errors: (pred_steps, d_f)
@@ -17,13 +17,12 @@ def plot_error_map(errors, title=None, step_length=1):
     errors_np = errors.T.cpu().numpy()  # (d_f, pred_steps)
     d_f, pred_steps = errors_np.shape
 
-    # Normalize all errors to [0,1] for color map
-    max_errors = errors_np.max(axis=1)  # d_f
-    errors_norm = errors_np / np.expand_dims(max_errors, axis=1)
+    rel_errors = errors_np / np.abs(np.expand_dims(global_mean.cpu(), axis=1))
+    height = int(np.sqrt(len(constants.vertical_levels)
+                         * len(constants.param_names_short)) * 2)
+    fig, ax = plt.subplots(figsize=(15, height))
 
-    fig, ax = plt.subplots(figsize=(15, 10))
-
-    ax.imshow(errors_norm, cmap="OrRd", vmin=0, vmax=1., interpolation="none",
+    ax.imshow(rel_errors, cmap="OrRd", vmin=0, vmax=1., interpolation="none",
               aspect="auto", alpha=0.8)
 
     # ax and labels
@@ -33,7 +32,7 @@ def plot_error_map(errors, title=None, step_length=1):
         ax.text(i, j, formatted_error, ha='center', va='center', usetex=False)
 
     # Ticks and labels
-    label_size = 15
+    label_size = 12
     ax.set_xticks(np.arange(pred_steps))
     pred_hor_i = np.arange(pred_steps) + 1  # Prediction horiz. in index
     pred_hor_h = step_length * pred_hor_i  # Prediction horiz. in hours
@@ -42,9 +41,10 @@ def plot_error_map(errors, title=None, step_length=1):
 
     ax.set_yticks(np.arange(d_f))
     y_ticklabels = [
-        f"{name if name != 'RELHUM' else 'RH'} ({unit}) {level}" for name,
-        unit in zip(constants.param_names_short, constants.param_units)
-        for level in constants.vertical_levels]
+        f"{name if name != 'RELHUM' else 'RH'} ({unit}) {f'{level:02}' if constants.is_3d[name] else ''}"
+        for name, unit in zip(constants.param_names_short, constants.param_units)
+        for level in (constants.vertical_levels if constants.is_3d[name] else [0])]
+    y_ticklabels = sorted(y_ticklabels)
     ax.set_yticklabels(y_ticklabels, rotation=30, size=label_size)
 
     if title:
@@ -67,7 +67,7 @@ def plot_prediction(pred, target, obs_mask, title=None, vrange=None):
         vmin, vmax = vrange[0].cpu().item(), vrange[1].cpu().item()
 
     # get test data
-    data_latlon = xr.open_dataset(constants.example_file)
+    data_latlon = xr.open_zarr(constants.example_file).isel(time=0)
     lon, lat = unrotate_latlon(data_latlon)
 
     fig, axes = plt.subplots(2, 1, figsize=constants.fig_size,
@@ -120,7 +120,7 @@ def plot_spatial_error(error, obs_mask, title=None, vrange=None):
         vmin, vmax = vrange[0].cpu().item(), vrange[1].cpu().item()
 
     # get test data
-    data_latlon = xr.open_dataset(constants.example_file)
+    data_latlon = xr.open_zarr(constants.example_file).isel(time=0)
     lon, lat = unrotate_latlon(data_latlon)
 
     fig, ax = plt.subplots(figsize=constants.fig_size,

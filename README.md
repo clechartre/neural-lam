@@ -1,127 +1,3 @@
-# Neural-LAM: Neural Weather Prediction for Limited Area Modeling
-
-## Preparation
-
-This project has been created from the
-[MeteoSwiss Python blueprint](https://github.com/MeteoSwiss-APN/mch-python-blueprint)
-for the CSCS.
-The recommended way to manage Python versions is with `Conda`
-(https://docs.conda.io/en/latest/).
-On CSCS machines it is recommended to install the leaner `Miniconda`
-(https://docs.conda.io/en/latest/miniconda.html),
-which offers enough functionality for most of our use cases.
-If you don't want to do this step manually, you may use the script
-`tools/setup_miniconda.sh`.
-The default installation path of this script is the current working directory,
-you might want to change that with the `-p` option to a common location for all
-environments, like e.g. `$SCRATCH`. If you want the script to immediately
-initialize conda (executing `conda init` and thereby adding a few commands at the
-end of your `.bashrc`) after installation, add the `-u` option:
-
-```bash
-tmpl/tools/setup_miniconda.sh -p $SCRATCH -u
-```
-
-In case you ever need to uninstall miniconda, do the following:
-
-```bash
-conda init --reverse --all
-rm -rf $SCRATCH/miniconda
-```
-
-## Start developing
-
-Once you created or cloned this repository, make sure the installation is running properly. Install the package dependencies with the provided script `setup_env.sh`.
-Check available options with
-```bash
-tools/setup_env.sh -h
-```
-We distinguish pinned installations based on exported (reproducible) environments and free installations where the installation
-is based on top-level dependencies listed in `requirements/requirements.yml`. If you start developing, you might want to do an unpinned installation and export the environment:
-
-```bash
-tools/setup_env.sh -u -e -n <package_env_name>
-```
-*Hint*: If you are the package administrator, it is a good idea to understand what this script does, you can do everything manually with `conda` instructions.
-
-*Hint*: Use the flag `-m` to speed up the installation using mamba. Of course you will have to install mamba first (we recommend to install mamba into your base
-environment `conda install -c conda-forge mamba`. If you install mamba in another (maybe dedicated) environment, environments installed with mamba will be located
-in `<miniconda_root_dir>/envs/mamba/envs`, which is not very practical.
-
-The package itself is installed with `pip`. For development, install in editable mode:
-
-```bash
-conda activate <package_env_name>
-pip install --editable .
-```
-
-*Warning:* Make sure you use the right pip, i.e. the one from the installed conda environment (`which pip` should point to something like `path/to/miniconda/envs/<package_env_name>/bin/pip`).
-
-Once your package is installed, run the tests by typing:
-
-```
-conda activate <package_env_name>
-pytest
-```
-
-If the tests pass, you are good to go. If not, contact the package administrator Simon Adamov. Make sure to update your requirement files and export your environments after installation
-every time you add new imports while developing. Check the next section to find some guidance on the development process if you are new to Python and/or APN.
-
-### Roadmap to your first contribution
-
-Generally, the source code of your library is located in `src/<library_name>`. The blueprint will generate some example code in `mutable_number.py`, `utils.py` and `cli.py`. `cli.py` thereby serves as an entry
-point for functionalities you want to execute from the command line, it is based on the Click library. If you do not need interactions with the command line, you should remove `cli.py`. Moreover, of course there exist other options for command line interfaces,
-a good overview may be found here (https://realpython.com/comparing-python-command-line-parsing-libraries-argparse-docopt-click/), we recommend however to use click. The provided example
-code should provide some guidance on how the individual source code files interact within the library. In addition to the example code in `src/<library_name>`, there are examples for
-unit tests in `tests/<library_name>/`, which can be triggered with `pytest` from the command line. Once you implemented a feature (and of course you also
-implemented a meaningful test ;-)), you are likely willing to commit it. First, go to the root directory of your package and run pytest.
-
-```bash
-conda activate <package_env_name>
-cd <package-root-dir>
-pytest
-```
-
-If you use the tools provided by the blueprint as is, pre-commit will not be triggered locally but only if you push to the main branch
-(or push to a PR to the main branch). If you consider it useful, you can set up pre-commit to run locally before every commit by initializing it once. In the root directory of
-your package, type:
-
-```bash
-pre-commit install
-```
-
-If you run `pre-commit` without installing it before (line above), it will fail and the only way to recover it, is to do a forced reinstallation (`conda install --force-reinstall pre-commit`).
-You can also just run pre-commit selectively, whenever you want by typing (`pre-commit run --all-files`). Note that mypy and pylint take a bit of time, so it is really
-up to you, if you want to use pre-commit locally or not. In any case, after running pytest, you can commit and the linters will run at the latest on the GitHub actions server,
-when you push your changes to the main branch. Note that pytest is currently not invoked by pre-commit, so it will not run automatically. Automated testing can be set up with
-GitHub Actions or be implemented in a Jenkins pipeline (template for a plan available in `jenkins/`. See the next section for more details.
-
-## Development tools
-
-As this package was created with the APN Python blueprint, it comes with a stack of development tools, which are described in more detail on
-(https://meteoswiss-apn.github.io/mch-python-blueprint/). Here, we give a brief overview on what is implemented.
-
-### Testing and coding standards
-
-Testing your code and compliance with the most important Python standards is a requirement for Python software written in APN. To make the life of package
-administrators easier, the most important checks are run automatically on GitHub actions. If your code goes into production, it must additionally be tested on CSCS
-machines, which is only possible with a Jenkins pipeline (GitHub actions is running on a GitHub server).
-
-### Pre-commit on GitHub actions
-
-`.github/workflows/pre-commit.yml` contains a hook that will trigger the creation of your environment (unpinned) on the GitHub actions server and
-then run various formatters and linters through pre-commit. This hook is only triggered upon pushes to the main branch (in general: don't do that)
-and in pull requests to the main branch.
-
-### Jenkins
-
-A jenkinsfile is available in the `jenkins/` folder. It can be used for a multibranch jenkins project, which builds
-both commits on branches and PRs. Your jenkins pipeline will not be set up
-automatically. If you need to run your tests on CSCS machines, contact DevOps to help you with the setup of the pipelines. Otherwise, you can ignore the jenkinsfiles
-and exclusively run your tests and checks on GitHub actions.
-
-## Features
-
 <p align="middle">
     <img src="figures/neural_lam_header.png" width="700">
 </p>
@@ -150,7 +26,35 @@ We plan to continue updating this repository as we improve existing models and d
 Collaborations around this implementation are very welcome.
 If you are working with Neural-LAM feel free to get in touch and/or submit pull requests to the repository.
 
-<span style="color:#98FF98;">Additions relevant to the COSMO Neural-LAM implementation are highlighted in __green__.</span>
+<span style="color:blue;">Additions relevant to the COSMO Neural-LAM implementation are highlighted in __blue__.</span>
+# Quick Start
+<span style="color:blue;">
+Follow the steps below to get started with Neural-LAM on Balfrin.cscs.ch.
+Don't worry everything is carried out on a small subset of data for a limited number of epochs.
+</span>
+
+```{bash}
+# Clone the repository
+git clone https://github.com/MeteoSwiss/neural-lam/
+cd neural-lam
+
+# Link the data folder containing the COSMO zarr archives
+ln -s /scratch/mch/sadamov/pyprojects_data/neural_lam/data
+mkdir lightning_logs
+
+# Create the conda environment (~10min)
+mamba env create -f environment.yml
+mamba activate neural-lam
+
+# Run the preprocessing/training scripts
+sbatch slurm_train.sh
+
+# Run the evaluation script and generate plots and gif for TQV
+# (don't execute preprocessing scripts at the same time as training)
+sbatch slurm_eval.sh
+
+```
+
 
 # Modularity
 The Neural-LAM code is designed to modularize the different components involved in training and evaluating neural weather prediction models.
@@ -173,7 +77,7 @@ If there is interest to use Neural-LAM for other areas it is not a substantial u
 We would be happy to support such enhancements.
 See the issues https://github.com/joeloskarsson/neural-lam/issues/2, https://github.com/joeloskarsson/neural-lam/issues/3 and https://github.com/joeloskarsson/neural-lam/issues/4 for some initial ideas on how this could be done.
 
-<span style="color:#98FF98;">
+<span style="color:blue;">
 
 For the COSMO implementation some additional settings can be defined in `neural_lam/constants`. Most of the code should take user input either from `neural_lam/constants` or directly from command-line argument parsing. Would certainly be worth the effort to make the code fully area-agnostic.
 
@@ -184,7 +88,7 @@ Below follows instructions on how to use Neural-LAM to train and evaluate models
 
 ## Installation
 
-<span style="color:#98FF98;">
+<span style="color:blue;">
 
 For COSMO we use conda to avoid the Cartopy installation issues and because conda environments usually work well on the vCluster called Balfrin.cscs.ch.
 
@@ -224,7 +128,7 @@ All graphs used in the paper are also available for download at the same link (b
 Note that this is far too little data to train any useful models, but all scripts can be ran with it.
 It should thus be useful to make sure that your python environment is set up correctly and that all the code can be ran without any issues.
 
-<span style="color:#98FF98;">
+<span style="color:blue;">
 
 For COSMO the data is stored in the `data` folder with the same structure, but called `cosmo`. The data will be open-source someday but for now we cannot share the data outside of our vCluster. A tiny example dataset could probably be made available.
 
@@ -241,7 +145,7 @@ In order to start training models at least three pre-processing scripts have to 
 * `create_grid_features.py`
 * `create_parameter_weights.py`
 
-<span style="color:#98FF98;">
+<span style="color:blue;">
 
 For COSMO also run `create_static_features.py` to create the static features for the graph nodes.
 
@@ -288,14 +192,13 @@ A few of the key ones are outlined below:
 * `--processor_layers`: Number of GNN layers to use in the processing part of the model
 * `--ar_steps`: Number of time steps to unroll for when making predictions and computing the loss
 
-<span style="color:#98FF98;">
+<span style="color:blue;">
 
-For COSMO three simple slurm sbatch scripts are available for training/evaluating/debugging the model. You can launch either of these jobs respectively with:
+For COSMO three simple slurm sbatch scripts are available for training/evaluating the model. You can launch either of these jobs respectively with:
 
 ```
 sbatch slurm_train.sh
 sbatch slurm_eval.sh
-sbatch slurm_debug.sh
 ```
 
 This will train the model using the same seed and data as seen in the figures on wandb.
@@ -440,9 +343,6 @@ In addition, hierarchical mesh graphs (`L > 1`) feature a few additional files w
 These files have the same list format as the ones above, but each list has length `L-1` (as these edges describe connections between levels).
 Entries 0 in these lists describe edges between the lowest levels 1 and 2.
 
-## Contact
+# Contact
 If you are interested in machine learning models for LAM, have questions about our implementation or ideas for extending it, feel free to get in touch.
 You can open a github issue on this page, or (if more suitable) send an email to [joel.oskarsson@liu.se](mailto:joel.oskarsson@liu.se).
-
-
-This package was created with [`copier`](https://github.com/copier-org/copier) and the [`MeteoSwiss-APN/mch-python-blueprint`](https://meteoswiss-apn.github.io/mch-python-blueprint/) project template.

@@ -1,6 +1,6 @@
 import glob
-import itertools
 import os
+from datetime import datetime, timedelta
 
 import imageio
 import matplotlib.pyplot as plt
@@ -32,7 +32,10 @@ class ARModel(pl.LightningModule):
         # Some constants useful for sub-classes
         self.batch_static_feature_dim = constants.batch_static_feature_dim
         self.grid_forcing_dim = constants.grid_forcing_dim
-        self.grid_state_dim = constants.grid_state_dim
+        count_3d_fields = sum(value == 1 for value in constants.is_3d.values())
+        count_2d_fields = sum(value != 1 for value in constants.is_3d.values())
+        self.grid_state_dim = len(
+            constants.vertical_levels) * count_3d_fields + count_2d_fields
 
         # Load static features for grid/data
         static_data_dict = utils.load_static_data(args.dataset)
@@ -65,17 +68,23 @@ class ARModel(pl.LightningModule):
         self.test_maes = []
         self.test_mses = []
 
-        # For making restoring of optimizer state optional (slight hack)
-        self.opt_state = None
+        # For making restoring of optimizer state optional
+        self.resume_opt_sched = args.resume_opt_sched
 
         # For example plotting
         self.n_example_pred = args.n_example_pred
-        self.plotted_examples = 0
 
         # For storing spatial loss maps during evaluation
         self.spatial_loss_maps = []
 
-        self.plot_created = False
+        self.variable_indices = self.precompute_variable_indices()
+        self.selected_vars_units = [
+            (var_name, var_unit) for var_name, var_unit in zip(
+                constants.param_names_short, constants.param_units
+            ) if var_name in constants.eval_plot_vars
+        ]
+        print("variable_indices", self.variable_indices)
+        print("selected_vars_units", self.selected_vars_units)
 
     @pl.utilities.rank_zero_only
     def log_image(self, name, img):
@@ -90,15 +99,14 @@ class ARModel(pl.LightningModule):
 
         wandb.define_metric("val_mean_loss", summary="min")
         for step in self.val_step_log_errors:
-            wandb.define_metric(f"val_loss_unroll{step}", summary="min")
+            wandb.define_metric(f"val_loss_unroll{step:02}", summary="min")
         self.metrics_initialized = True  # Make sure this is done only once
 
     def configure_optimizers(self):
         opt = torch.optim.AdamW(self.parameters(), lr=self.lr, betas=(0.9, 0.95))
-        if self.opt_state:
-            opt.load_state_dict(self.opt_state)
+        scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=30, gamma=0.1)
 
-        return opt
+        return [opt], [scheduler]
 
     @staticmethod
     def expand_to_batch(x, batch_size):
@@ -110,6 +118,39 @@ class ARModel(pl.LightningModule):
     def setup(self, stage=None):
         self.loss = self.loss.to(self.device)
         self.interior_mask = self.interior_mask.to(self.device)
+
+    def precompute_variable_indices(self):
+        variable_indices = {}
+        all_vars = []
+        index = 0
+        # Create a list of tuples for all variables, using level 0 for 2D variables
+        for var_name in constants.param_names_short:
+            if constants.is_3d[var_name]:
+                for level in constants.vertical_levels:
+                    all_vars.append((var_name, level))
+            else:
+                all_vars.append((var_name, 0))  # Use level 0 for 2D variables
+
+        # Sort the variables based on the tuples
+        sorted_vars = sorted(all_vars)
+
+        for var in sorted_vars:
+            var_name, level = var
+            if var_name not in variable_indices:
+                variable_indices[var_name] = []
+            variable_indices[var_name].append(index)
+            index += 1
+
+        return variable_indices
+
+    def apply_constraints(self, prediction):
+        for param, (min_val, max_val) in constants.param_constraints.items():
+            indices = self.variable_indices[param]
+            for index in indices:
+                # Apply clamping to ensure values are within the specified bounds
+                prediction[:, :, index] = torch.clamp(
+                    prediction[:, :, index], min=min_val, max=max_val if max_val is not None else float('inf'))
+        return prediction
 
     def predict_step(self, prev_state, prev_prev_state):
         """
@@ -164,7 +205,7 @@ class ARModel(pl.LightningModule):
         entry_loss = self.loss(prediction, target)  # (B, pred_steps, N_grid, d_f)
 
         # (B, pred_steps, N_grid), weighted sum over features
-        grid_node_loss = torch.sum(entry_loss * self.state_weight, dim=-1)
+        grid_node_loss = torch.mean(entry_loss * self.state_weight, dim=-1)
 
         if not reduce_spatial_dim:
             return grid_node_loss  # (B, pred_steps, N_grid)
@@ -255,7 +296,7 @@ class ARModel(pl.LightningModule):
         mean_loss = torch.mean(time_step_loss)
 
         # Log loss per time step forward and mean
-        val_log_dict = {f"val_loss_unroll{step}": time_step_loss[step - 1]
+        val_log_dict = {f"val_loss_unroll{step:02}": time_step_loss[step - 1]
                         for step in self.val_step_log_errors}
         val_log_dict["val_mean_loss"] = mean_loss
 
@@ -280,6 +321,7 @@ class ARModel(pl.LightningModule):
                 # Don't log this during sanity checking
                 val_err_fig = vis.plot_error_map(
                     val_err_rescaled,
+                    self.data_mean,
                     title="Validation " +
                     self.loss_name.upper() +
                     " error",
@@ -301,7 +343,7 @@ class ARModel(pl.LightningModule):
         mean_loss = torch.mean(time_step_loss)
 
         # Log loss per time step forward and mean
-        test_log_dict = {f"test_loss_unroll{step}": time_step_loss[step - 1]
+        test_log_dict = {f"test_loss_unroll{step:02}": time_step_loss[step - 1]
                          for step in self.val_step_log_errors}
         test_log_dict["test_mean_loss"] = mean_loss
 
@@ -321,72 +363,102 @@ class ARModel(pl.LightningModule):
         log_spatial_losses = spatial_loss[:, self.val_step_log_errors - 1]
         self.spatial_loss_maps.append(log_spatial_losses)  # (B, N_log, N_grid)
 
-        list(
-            itertools.product(
-                constants.param_names_short,
-                constants.vertical_levels))
+        if self.global_rank == 0 and self.trainer.datamodule.test_dataset.batch_index == batch_idx:
+            index_within_batch = self.trainer.datamodule.test_dataset.index_within_batch
+            if not torch.is_tensor(index_within_batch):
+                index_within_batch = torch.tensor(
+                    index_within_batch, dtype=torch.int64, device=prediction.device)
 
-        if self.global_rank == 0 and not self.plot_created:
-            self.plot_created = True
-            # Plot example predictions
-            if self.plotted_examples < self.n_example_pred:
-                n_additional_examples = min(prediction.shape[0], self.n_example_pred
-                                            - self.plotted_examples)
+            prediction = prediction[index_within_batch]
+            target = target[index_within_batch]
 
-                # Rescale to original data scale
-                prediction_rescaled = prediction * self.data_std + self.data_mean
-                target_rescaled = target * self.data_std + self.data_mean
-                # Iterate over the examples
-                for pred_slice, target_slice in zip(
-                        prediction_rescaled[:n_additional_examples],
-                        target_rescaled[:n_additional_examples]):
-                    self.plotted_examples += 1  # Increment already here
-                    # Each slice is (pred_steps, N_grid, d_f)
-                    # Iterate over variables
-                    for var_name, var_unit in zip(
-                            constants.param_names_short, constants.param_units):
-                        # Iterate over vertical levels
-                        for var_level in constants.vertical_levels:
-                            var_i = constants.param_names_short.index(
-                                var_name) * len(constants.vertical_levels) + constants.vertical_levels.index(var_level)
+            # Rescale to original data scale
+            prediction_rescaled = prediction * self.data_std + self.data_mean
+            prediction_rescaled = self.apply_constraints(prediction_rescaled)
+            target_rescaled = target * self.data_std + self.data_mean
 
-                            # Calculate var_vrange for each level
-                            var_vmin = min(
-                                pred_slice[:, :, var_i].min(),
-                                target_slice[:, :, var_i].min())
-                            var_vmax = max(
-                                pred_slice[:, :, var_i].max(),
-                                target_slice[:, :, var_i].max())
-                            var_vrange = (var_vmin, var_vmax)
-                            # Iterate over time steps
-                            for t_i, (pred_t, target_t) in enumerate(
-                                    zip(pred_slice, target_slice), start=1):
-                                # Add vertical level to the plot title
-                                # This will add leading zeros to make t_i at least 2
-                                # digits long
-                                t_i_str = str(t_i).zfill(2)
-                                title = f"{var_name} ({var_unit}), level={var_level}, t={t_i_str} h"
+            # BUG: this creates artifacts at border cells, improve logic!
+            if constants.smooth_boundaries:
+                # (pred_steps, N_grid, d_f)
 
-                                var_fig = vis.plot_prediction(
-                                    pred_t[:, var_i], target_t[:, var_i],
-                                    self.interior_mask[:, 0],
-                                    title=title,
-                                    vrange=var_vrange
-                                )
-                                wandb.log(
-                                    {f"{var_name}_lvl_{var_level}_t_{t_i_str}": wandb.Image(var_fig)})
-                                # Close all figs for this time step, saves memory
-                                plt.close("all")
+                height, width = constants.grid_shape
+                prediction_permuted = prediction_rescaled.permute(
+                    0, 2, 1).reshape(
+                    prediction_rescaled.size(0),
+                    prediction_rescaled.size(2),
+                    height, width)
 
-                if constants.store_example_data:
-                    # Save pred and target as .pt files
-                    torch.save(pred_slice.cpu(), os.path.join(
-                        wandb.run.dir, f'example_pred_{self.plotted_examples}.pt'))
-                    torch.save(
-                        target_slice.cpu(),
-                        os.path.join(
-                            wandb.run.dir,
-                            f'example_target_{self.plotted_examples}.pt'))
+                # Define the smoothing kernel for grouped convolution
+                num_groups = prediction_permuted.shape[1]
+                kernel_size = 3
+                kernel = torch.ones((num_groups, 1, kernel_size,
+                                    kernel_size)) / (kernel_size ** 2)
+                kernel = kernel.to(self.device)
+
+                # Use the updated kernel in the conv2d operation
+                prediction_smoothed = nn.functional.conv2d(
+                    prediction_permuted, kernel, padding=1, groups=num_groups)
+
+                # (pred_steps, N_grid, channels)
+                # Combine the height and width dimensions back into a single N_grid
+                # dimension
+                prediction_smoothed = prediction_smoothed.reshape(
+                    prediction_smoothed.size(0), prediction_smoothed.size(1), -1)
+
+                # Permute the dimensions to get back to the original order (pred_steps,
+                # N_grid, d_f)
+                prediction_smoothed = prediction_smoothed.permute(0, 2, 1)
+
+                # Apply the mask to the smoothed prediction
+                prediction_rescaled = self.border_mask * prediction_smoothed + self.interior_mask * prediction_rescaled
+
+            # Each slice is (pred_steps, N_grid, d_f)
+            # Iterate over variables
+
+            for var_name, var_unit in self.selected_vars_units:
+                # Retrieve the indices for the current variable
+                var_indices = self.variable_indices[var_name]
+                for lvl_i, var_i in enumerate(var_indices):
+                    # Calculate var_vrange for each index
+                    lvl = constants.vertical_levels[lvl_i]
+                    var_vmin = min(
+                        prediction_rescaled[:, :, var_i].min(),
+                        target_rescaled[:, :, var_i].min())
+                    var_vmax = max(
+                        prediction_rescaled[:, :, var_i].max(),
+                        target_rescaled[:, :, var_i].max())
+                    var_vrange = (var_vmin, var_vmax)
+                    # Iterate over time steps
+                    for t_i, (pred_t, target_t) in enumerate(
+                            zip(prediction_rescaled, target_rescaled), start=1):
+                        eval_datetime_obj = datetime.strptime(
+                            constants.eval_datetime, '%Y%m%d%H')
+                        current_datetime_obj = eval_datetime_obj + timedelta(hours=t_i)
+                        current_datetime_str = current_datetime_obj.strftime('%Y%m%d%H')
+                        title = f"{var_name} ({var_unit}), t={current_datetime_str}"
+                        var_fig = vis.plot_prediction(
+                            pred_t[:, var_i], target_t[:, var_i],
+                            self.interior_mask[:, 0],
+                            title=title,
+                            vrange=var_vrange
+                        )
+                        wandb.log(
+                            {f"{var_name}_lvl_{lvl:02}_t_{current_datetime_str}": wandb.Image(var_fig)}
+                        )
+                        plt.close("all")
+
+            if constants.store_example_data:
+                # Save pred and target as .pt files
+                torch.save(
+                    prediction_rescaled.cpu(),
+                    os.path.join(
+                        wandb.run.dir,
+                        'example_pred.pt'))
+                torch.save(
+                    target_rescaled.cpu(),
+                    os.path.join(
+                        wandb.run.dir,
+                        'example_target.pt'))
 
     def on_test_epoch_end(self):
         """
@@ -413,9 +485,11 @@ class ARModel(pl.LightningModule):
             # Create plots only for these instances
             mae_fig = vis.plot_error_map(
                 test_mae_rescaled[self.val_step_log_errors - 1],
+                self.data_mean,
                 step_length=self.step_length)
             rmse_fig = vis.plot_error_map(
                 test_rmse_rescaled[self.val_step_log_errors - 1],
+                self.data_mean,
                 step_length=self.step_length)
 
             wandb.log({  # Log png:s
@@ -469,31 +543,37 @@ class ARModel(pl.LightningModule):
                 wandb.run.dir, 'mean_spatial_loss.pt'))
 
             dir_path = f"{wandb.run.dir}/media/images"
-            for param in constants.param_names_short + ["test_loss"]:
-                for level in constants.vertical_levels:
-                    # Get all the images for the current parameter
+
+            for var_name, _ in self.selected_vars_units:
+                var_indices = self.variable_indices[var_name]
+                for lvl_i, var_i in enumerate(var_indices):
+                    # Calculate var_vrange for each index
+                    lvl = constants.vertical_levels[lvl_i]
+
+                    # Get all the images for the current variable and index
                     images = sorted(
-                        glob.glob(f'{dir_path}/{param}_lvl_{level}_t_*.png'))
+                        glob.glob(f"{dir_path}/{var_name}_lvl_{lvl:02}_t_*.png"))
                     # Generate the GIF
-                    with imageio.get_writer(f'{dir_path}/{param}_lvl_{level}.gif', mode='I', fps=1) as writer:
+                    with imageio.get_writer(f'{dir_path}/{var_name}_lvl_{lvl:02}.gif', mode='I', fps=1) as writer:
                         for filename in images:
                             image = imageio.imread(filename)
                             writer.append_data(image)
-
         self.spatial_loss_maps.clear()
 
-    def on_load_checkpoint(self, ckpt):
-        """
-        Perform any changes to state dict before loading checkpoint
-        """
-        loaded_state_dict = ckpt["state_dict"]
 
-        # Fix for loading older models after IneractionNet refactoring, where the
-        # grid MLP was moved outside the encoder InteractionNet class
-        if "g2m_gnn.grid_mlp.0.weight" in loaded_state_dict:
-            replace_keys = list(filter(lambda key: key.startswith("g2m_gnn.grid_mlp"),
-                                       loaded_state_dict.keys()))
-            for old_key in replace_keys:
-                new_key = old_key.replace("g2m_gnn.grid_mlp", "encoding_grid_mlp")
-                loaded_state_dict[new_key] = loaded_state_dict[old_key]
-                del loaded_state_dict[old_key]
+def on_load_checkpoint(self, ckpt):
+    loaded_state_dict = ckpt["state_dict"]
+
+    if "g2m_gnn.grid_mlp.0.weight" in loaded_state_dict:
+        replace_keys = list(filter(lambda key: key.startswith("g2m_gnn.grid_mlp"),
+                                   loaded_state_dict.keys()))
+        for old_key in replace_keys:
+            new_key = old_key.replace("g2m_gnn.grid_mlp", "encoding_grid_mlp")
+            loaded_state_dict[new_key] = loaded_state_dict[old_key]
+            del loaded_state_dict[old_key]
+
+    if not self.resume_opt_sched:
+        # Create new optimizer and scheduler instances instead of setting them to None
+        optimizers, lr_schedulers = self.configure_optimizers()
+        ckpt['optimizer_states'] = [opt.state_dict() for opt in optimizers]
+        ckpt['lr_schedulers'] = [sched.state_dict() for sched in lr_schedulers]
