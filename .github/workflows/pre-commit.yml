@@ -3,10 +3,10 @@ name: Run pre-commit in blueprint
 on:
   push:
     branches:
-    - main
-  pull_request:
-    branches:
-    - main
+    - blueprint
+  # pull_request:
+  #   branches:
+  #   - main
 
 jobs:
   blueprint-pre-commit:
