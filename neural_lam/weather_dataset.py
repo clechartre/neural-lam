@@ -21,11 +21,14 @@ class WeatherDataset(torch.utils.data.Dataset):
     d_forcing = 0 #TODO: extract incoming radiation from KENDA
     """
 
+    # FIXME change in this class how it assembles the datasets to include forecast 
+    # Right now it assembles gorund truth and input but we need to also align the forecast 
+    # Need to create a third dimension that contains forecast 
     def __init__(self, dataset_name, split="train",
                  standardize=True, subset=False, batch_size=4):
         super().__init__()
 
-        assert split in ("train", "val", "test"), "Unknown dataset split"
+        assert split in ("train", "val", "test", "forecast"), "Unknown dataset split"
         sample_dir_path = os.path.join("data", dataset_name, "samples", split)
 
         self.batch_size = batch_size
@@ -133,18 +136,20 @@ class WeatherDataset(torch.utils.data.Dataset):
         sample_xr = sample_archive.isel(time=slice(idx_sample, idx_sample + num_steps))
 
         # (N_t', N_x, N_y, d_features')
-        sample = torch.tensor(sample_xr.values, dtype=torch.float32)
+        sample = torch.tensor(sample_xr.values, dtype=torch.float32) # FIXME change dimensions of sample so that it can accept the forecast 
 
-        sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
+        sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features) 
 
         if self.standardize:
             sample = (sample - self.data_mean) / self.data_std
 
         # Split up sample in init. states and target states
-        init_states = sample[:2]  # (2, N_grid, d_features)
-        target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
+        init_states = sample[::2]  # (2, N_grid, d_features)
+        target_states = sample[:2:]  # (sample_length-2, N_grid, d_features)
+        #FIXME Make sure that is self.split == "forecast" then we have the third dimension or give it a specific index 
+        forecast_states = sample[::2]
 
-        return init_states, target_states
+        return init_states, target_states, forecast_states # FIXME change the getitem so I can access forecast 
 
 
 class WeatherDataModule(pl.LightningDataModule):
@@ -178,7 +183,7 @@ class WeatherDataModule(pl.LightningDataModule):
                 standardize=self.standardize,
                 subset=self.subset,
                 batch_size=self.batch_size)
-
+            
         if stage == 'test' or stage is None:
             self.test_dataset = WeatherDataset(
                 self.dataset_name,
@@ -186,7 +191,13 @@ class WeatherDataModule(pl.LightningDataModule):
                 standardize=self.standardize,
                 subset=self.subset,
                 batch_size=self.batch_size)
-
+            self.forecast_dataset = WeatherDataset(
+                self.dataset_name,
+                split="forecast",
+                standardize=self.standardize,
+                subset=self.subset,
+                batch_size=self.batch_size)
+        
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
             self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers,
@@ -201,3 +212,10 @@ class WeatherDataModule(pl.LightningDataModule):
         return torch.utils.data.DataLoader(
             self.test_dataset, batch_size=self.batch_size,
             num_workers=self.num_workers, shuffle=False, pin_memory=False)
+    
+    def forecast_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.forecast_dataset, batch_size=self.batch_size,
+            num_workers=self.num_workers, shuffle=False, pin_memory=False)
+
+

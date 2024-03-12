@@ -228,19 +228,19 @@ class ARModel(pl.LightningModule):
             corresponds to index 1 of init_states
         """
 
-        init_states, target_states, = batch
+        init_states, target_states, forecast_state = batch
 
         prediction = self.unroll_prediction(
             init_states, target_states)  # (B, pred_steps, N_grid, d_f)
 
-        return prediction, target_states
+        return prediction, target_states, forecast_state
 
     def training_step(self, batch):
         """
         Train on single batch
         """
 
-        prediction, target = self.common_step(batch)
+        prediction, target, _ = self.common_step(batch)
         # Compute loss
         batch_loss = torch.mean(self.weighted_loss(
             prediction, target))  # mean over unrolled times and batch
@@ -289,7 +289,7 @@ class ARModel(pl.LightningModule):
         """
         Run validation on single batch
         """
-        prediction, target = self.common_step(batch)
+        prediction, target, _  = self.common_step(batch)
 
         time_step_loss = torch.mean(self.weighted_loss(prediction,
                                                        target), dim=0)  # (time_steps-1)
@@ -336,7 +336,9 @@ class ARModel(pl.LightningModule):
         Run test on single batch
         """
 
-        prediction, target = self.common_step(batch)
+        prediction, target, forecast = self.common_step(batch)
+        # FIXME load the forecast dataset from somewhere 
+
 
         time_step_loss = torch.mean(self.weighted_loss(prediction,
                                                        target), dim=0)  # (time_steps-1)
@@ -370,12 +372,14 @@ class ARModel(pl.LightningModule):
                     index_within_batch, dtype=torch.int64, device=prediction.device)
 
             prediction = prediction[index_within_batch]
-            target = target[index_within_batch]
+            target = target[index_within_batch] 
+            forecast = forecast[index_within_batch]
 
             # Rescale to original data scale
             prediction_rescaled = prediction * self.data_std + self.data_mean
             prediction_rescaled = self.apply_constraints(prediction_rescaled)
             target_rescaled = target * self.data_std + self.data_mean
+            forecast_rescaled = forecast * self.data_std + self.data_mean
 
             # BUG: this creates artifacts at border cells, improve logic!
             if constants.smooth_boundaries:
@@ -423,21 +427,23 @@ class ARModel(pl.LightningModule):
                     lvl = constants.vertical_levels[lvl_i]
                     var_vmin = min(
                         prediction_rescaled[:, :, var_i].min(),
-                        target_rescaled[:, :, var_i].min())
+                        target_rescaled[:, :, var_i].min(),
+                        forecast_rescaled[:, :, var_i].min())
                     var_vmax = max(
                         prediction_rescaled[:, :, var_i].max(),
-                        target_rescaled[:, :, var_i].max())
+                        target_rescaled[:, :, var_i].max(),
+                        forecast_rescaled[:, :, var_i].max())
                     var_vrange = (var_vmin, var_vmax)
                     # Iterate over time steps
-                    for t_i, (pred_t, target_t) in enumerate(
-                            zip(prediction_rescaled, target_rescaled), start=1):
+                    for t_i, (pred_t, target_t, forecast_t) in enumerate(
+                            zip(prediction_rescaled, target_rescaled, forecast_rescaled), start=1): 
                         eval_datetime_obj = datetime.strptime(
                             constants.eval_datetime, '%Y%m%d%H')
                         current_datetime_obj = eval_datetime_obj + timedelta(hours=t_i)
                         current_datetime_str = current_datetime_obj.strftime('%Y%m%d%H')
                         title = f"{var_name} ({var_unit}), t={current_datetime_str}"
                         var_fig = vis.plot_prediction(
-                            pred_t[:, var_i], target_t[:, var_i],
+                            pred_t[:, var_i], target_t[:, var_i], forecast_t[:,var_i],  
                             self.interior_mask[:, 0],
                             title=title,
                             vrange=var_vrange

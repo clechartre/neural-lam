@@ -7,6 +7,7 @@ import xarray as xr
 from neural_lam import constants, utils
 from neural_lam.rotate_grid import unrotate_latlon
 
+plt.rc('text', usetex=False)
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
 def plot_error_map(errors, global_mean, title=None, step_length=1):
@@ -54,9 +55,9 @@ def plot_error_map(errors, global_mean, title=None, step_length=1):
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def plot_prediction(pred, target, obs_mask, title=None, vrange=None):
+def plot_prediction(pred, target, forecast, obs_mask, title=None, vrange=None):
     """
-    Plot example prediction and grond truth.
+    Plot example prediction and ground truth.
     Each has shape (N_grid,)
     """
     # Get common scale for values
@@ -70,11 +71,11 @@ def plot_prediction(pred, target, obs_mask, title=None, vrange=None):
     data_latlon = xr.open_zarr(constants.example_file).isel(time=0)
     lon, lat = unrotate_latlon(data_latlon)
 
-    fig, axes = plt.subplots(2, 1, figsize=constants.fig_size,
+    fig, axes = plt.subplots(3, 1, figsize=constants.fig_size,
                              subplot_kw={"projection": constants.selected_proj})
 
     # Plot pred and target
-    for ax, data in zip(axes, (target, pred)):
+    for ax, data in zip(axes, (target, pred, forecast)): 
         data_grid = data.reshape(*constants.grid_shape[::-1]).cpu().numpy()
         contour_set = ax.contourf(
             lon,
@@ -97,6 +98,7 @@ def plot_prediction(pred, target, obs_mask, title=None, vrange=None):
     # Ticks and labels
     axes[0].set_title("Ground Truth", size=15)
     axes[1].set_title("Prediction", size=15)
+    axes[2].set_title("Forecast", size=15)
     cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
     cbar.ax.tick_params(labelsize=10)
 

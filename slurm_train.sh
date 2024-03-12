@@ -34,5 +34,7 @@ ulimit -c 0
 export OMP_NUM_THREADS=16
 
 # Run the script with torchrun
+# wandb_mode "online" needs log in to W&B, default is offline but currently crashes 
+# for online, first run wandb login
 srun -ul --gpus-per-task=1 python train_model.py --dataset "cosmo" --val_interval 5 \
-    --epochs 10 --n_workers 6 --batch_size 8 --subset_ds 1 --wandb_mode "offline"
+    --epochs 10 --n_workers 6 --batch_size 8 --subset_ds 1

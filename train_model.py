@@ -13,7 +13,7 @@ from neural_lam import constants, utils
 from neural_lam.models.graph_lam import GraphLAM
 from neural_lam.models.hi_lam import HiLAM
 from neural_lam.models.hi_lam_parallel import HiLAMParallel
-from neural_lam.weather_dataset import WeatherDataModule
+from neural_lam.weather_dataset import ForecastDataModule, WeatherDataModule
 
 MODELS = {
     "graph_lam": GraphLAM,
@@ -81,6 +81,9 @@ def main():
     parser.add_argument(
         '--dataset', type=str, default="meps_example",
         help='Dataset, corresponding to name in data directory (default: meps_example)')
+    parser.add_argument(
+        '--forecast_dataset', type=str, default="meps_example",
+        help='Forecast Dataset, corresponding to name in data directory (default: meps_example)')
     parser.add_argument(
         '--model', type=str, default="graph_lam",
         help='Model architecture to train/evaluate (default: graph_lam)')
@@ -164,6 +167,14 @@ def main():
         num_workers=args.n_workers
     )
 
+    # Create forecast data module 
+    forecast_data_module = ForecastDataModule(
+        args.forecast_dataset,
+        subset=bool(args.subset_ds),
+        batch_size=args.batch_size,
+        num_workers=args.n_workers
+    )
+
     # Get the device for the current process
     if torch.cuda.is_available():
         torch.set_float32_matmul_precision("high")  # Allows using Tensor Cores on A100s
@@ -232,6 +243,10 @@ def main():
             data_module.split = "val"
         else:  # Test
             data_module.split = "test"
+
+        # FIXME we need to handle the forecast data to get it out of the data module 
+        # Maybe create another object? OR be able to only choose subsections of data module 
+        print(data_module)
         trainer.test(model=model, datamodule=data_module, ckpt_path=args.load)
     else:
         # Train model
