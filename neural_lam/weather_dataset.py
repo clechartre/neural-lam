@@ -26,6 +26,7 @@ class WeatherDataset(torch.utils.data.Dataset):
     # Need to create a third dimension that contains forecast 
     def __init__(self, dataset_name, split="train",
                  standardize=True, subset=False, batch_size=4):
+        """Download, read the data, etc."""
         super().__init__()
 
         assert split in ("train", "val", "test", "forecast"), "Unknown dataset split"
@@ -34,11 +35,17 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.batch_size = batch_size
         self.batch_index = 0
         self.index_within_batch = 0
+        self.forecast_data = []
 
         self.zarr_files = sorted(glob.glob(
             os.path.join(sample_dir_path, "data*.zarr")))
+
+
         if len(self.zarr_files) == 0:
             raise ValueError("No .zarr files found in directory")
+        
+        if split == "forecast":
+            self.forecast_data = self.zarr_files
 
         if subset:
             if constants.eval_datetime is not None and split == "test":
@@ -115,12 +122,14 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.split = split
 
     def __len__(self):
+        """Return the data length."""
         num_steps = constants.train_horizon if self.split == "train" else constants.eval_horizon
         total_time = len(
             self.zarr_files) * constants.chunk_size - num_steps
         return total_time
 
     def __getitem__(self, idx):
+        """Return one item on the index."""
         num_steps = constants.train_horizon if self.split == "train" else constants.eval_horizon
 
         # Calculate which zarr files need to be loaded
@@ -136,7 +145,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         sample_xr = sample_archive.isel(time=slice(idx_sample, idx_sample + num_steps))
 
         # (N_t', N_x, N_y, d_features')
-        sample = torch.tensor(sample_xr.values, dtype=torch.float32) # FIXME change dimensions of sample so that it can accept the forecast 
+        sample = torch.tensor(sample_xr.values, dtype=torch.float32) 
 
         sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features) 
 
@@ -144,12 +153,14 @@ class WeatherDataset(torch.utils.data.Dataset):
             sample = (sample - self.data_mean) / self.data_std
 
         # Split up sample in init. states and target states
-        init_states = sample[::2]  # (2, N_grid, d_features)
-        target_states = sample[:2:]  # (sample_length-2, N_grid, d_features)
-        #FIXME Make sure that is self.split == "forecast" then we have the third dimension or give it a specific index 
-        forecast_states = sample[::2]
+        init_states = sample[:2]  # (2, N_grid, d_features)
+        target_states = sample[:2]  # (sample_length-2, N_grid, d_features)
 
-        return init_states, target_states, forecast_states # FIXME change the getitem so I can access forecast 
+
+        # FIXME this should probably get returned as a tensor as well 
+        forecast_states = self.forecast_data # Will be empty from init if no forecast data in this case -
+
+        return init_states, target_states, forecast_states
 
 
 class WeatherDataModule(pl.LightningDataModule):
