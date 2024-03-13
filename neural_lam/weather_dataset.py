@@ -23,7 +23,7 @@ class WeatherDataset(torch.utils.data.Dataset):
 
     # FIXME change in this class how it assembles the datasets to include forecast 
     # Right now it assembles gorund truth and input but we need to also align the forecast 
-    # Need to create a third dimension that contains forecast 
+    # Need to create a third dimension that contains forecast but without splitting it 
     def __init__(self, dataset_name, split="train",
                  standardize=True, subset=False, batch_size=4):
         """Download, read the data, etc."""
@@ -35,7 +35,6 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.batch_size = batch_size
         self.batch_index = 0
         self.index_within_batch = 0
-        self.forecast_data = []
 
         self.zarr_files = sorted(glob.glob(
             os.path.join(sample_dir_path, "data*.zarr")))
@@ -44,9 +43,6 @@ class WeatherDataset(torch.utils.data.Dataset):
         if len(self.zarr_files) == 0:
             raise ValueError("No .zarr files found in directory")
         
-        if split == "forecast":
-            self.forecast_data = self.zarr_files
-
         if subset:
             if constants.eval_datetime is not None and split == "test":
                 eval_datetime_obj = datetime.strptime(
@@ -121,6 +117,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.random_subsample = split == "train"
         self.split = split
 
+
     def __len__(self):
         """Return the data length."""
         num_steps = constants.train_horizon if self.split == "train" else constants.eval_horizon
@@ -156,9 +153,17 @@ class WeatherDataset(torch.utils.data.Dataset):
         init_states = sample[:2]  # (2, N_grid, d_features)
         target_states = sample[:2]  # (sample_length-2, N_grid, d_features)
 
+        # Integrating forecast data in same format as samples
+        forecast_states = torch.empty_like(sample)
+        if self.split == "forecast":
+            sample_archive_forecast = xr.concat(self.zarr_datasets, dim='time')
+            forecast_sample = torch.tensor(sample_archive_forecast.values, dtype=torch.float32)
+            forecast_sample = forecast_sample.flatten(1, 2) 
 
-        # FIXME this should probably get returned as a tensor as well 
-        forecast_states = self.forecast_data # Will be empty from init if no forecast data in this case -
+            if self.standardize:
+                forecast_sample = (forecast_sample - self.data_mean) / self.data_std
+
+            forecast_states = forecast_sample
 
         return init_states, target_states, forecast_states
 
@@ -206,7 +211,7 @@ class WeatherDataModule(pl.LightningDataModule):
                 self.dataset_name,
                 split="forecast",
                 standardize=self.standardize,
-                subset=self.subset,
+                subset=False,
                 batch_size=self.batch_size)
         
     def train_dataloader(self):

@@ -228,12 +228,12 @@ class ARModel(pl.LightningModule):
             corresponds to index 1 of init_states
         """
 
-        init_states, target_states, forecast_state = batch
+        init_states, target_states, forecast_states = batch
 
         prediction = self.unroll_prediction(
             init_states, target_states)  # (B, pred_steps, N_grid, d_f)
 
-        return prediction, target_states, forecast_state
+        return prediction, target_states, forecast_states
 
     def training_step(self, batch):
         """
@@ -337,8 +337,6 @@ class ARModel(pl.LightningModule):
         """
 
         prediction, target, forecast = self.common_step(batch)
-        # FIXME load the forecast dataset from somewhere 
-
 
         time_step_loss = torch.mean(self.weighted_loss(prediction,
                                                        target), dim=0)  # (time_steps-1)
