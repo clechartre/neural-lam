@@ -45,6 +45,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.forecast_dir_path = os.path.join(
             "data", dataset_name, "samples", "forecast"
         )
+        print(self.forecast_dir_path)
 
         self.batch_size = batch_size
         self.batch_index = 0
@@ -55,13 +56,15 @@ class WeatherDataset(torch.utils.data.Dataset):
         )
         if len(self.zarr_files) == 0:
             raise ValueError("No .zarr files found in directory")
+        
         self.forecast_files = sorted(
-            glob.glob(os.path.join(self.forecast_dir_path, "forecast*.zarr"))
+            glob.glob(os.path.join(self.forecast_dir_path, "data*.zarr"))
         )
         if len(self.forecast_files) == 0:
             raise ValueError("No .zarr files found in forecast directory")
 
         if subset:
+            print("with subset")
             if constants.EVAL_DATETIME is not None and split == "test":
                 eval_datetime_obj = datetime.strptime(
                     constants.EVAL_DATETIME, "%Y%m%d%H"
@@ -102,6 +105,7 @@ class WeatherDataset(torch.utils.data.Dataset):
                         break
             else:
                 self.zarr_files = self.zarr_files[0:2]
+                print(self.zarr_files[0])
 
             start_datetime = (
                 self.zarr_files[0]
@@ -206,9 +210,9 @@ class WeatherDataset(torch.utils.data.Dataset):
         sample_xr = sample_archive.isel(
             time=slice(idx_sample, idx_sample + num_steps)
         )
-        forecast_xr = forecast_archive.isel(
-            time=slice(num_steps) #FIXME find out what this does on line 162 to adapt here
-        )
+        # Align the forecast values to the sample time indices
+        forecast_time_indices = [i for i, t in enumerate(forecast_archive.time.values) if t in sample_xr.time.values]
+        forecast_xr = forecast_archive.isel(time=forecast_time_indices)
 
         # (N_t', N_x, N_y, d_features')
         sample = torch.tensor(sample_xr.values, dtype=torch.float32)

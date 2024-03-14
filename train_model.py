@@ -97,12 +97,6 @@ def main():
         "(default: meps_example)",
     )
     parser.add_argument(
-        "--forecast_dataset",
-        type=bool,
-        default=False,
-        help="Plot the forecast dataset too?",
-    )
-    parser.add_argument(
         "--model",
         type=str,
         default="graph_lam",
