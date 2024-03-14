@@ -34,13 +34,16 @@ class WeatherDataset(torch.utils.data.Dataset):
         standardize=True,
         subset=False,
         batch_size=4,
-        control_only=False,
+        control_only=False
     ):
         super().__init__()
 
         assert split in ("train", "val", "test"), "Unknown dataset split"
         self.sample_dir_path = os.path.join(
             "data", dataset_name, "samples", split
+        )
+        self.forecast_dir_path = os.path.join(
+            "data", dataset_name, "samples", "forecast"
         )
 
         self.batch_size = batch_size
@@ -52,6 +55,11 @@ class WeatherDataset(torch.utils.data.Dataset):
         )
         if len(self.zarr_files) == 0:
             raise ValueError("No .zarr files found in directory")
+        self.forecast_files = sorted(
+            glob.glob(os.path.join(self.forecast_dir_path, "forecast*.zarr"))
+        )
+        if len(self.forecast_files) == 0:
+            raise ValueError("No .zarr files found in forecast directory")
 
         if subset:
             if constants.EVAL_DATETIME is not None and split == "test":
@@ -104,41 +112,8 @@ class WeatherDataset(torch.utils.data.Dataset):
 
             print("Data subset of 200 samples starts on the", start_datetime)
 
-        # Separate 3D and 2D variables
-        variables_3d = [
-            var for var in constants.PARAM_NAMES_SHORT if constants.IS_3D[var]
-        ]
-        variables_2d = [
-            var
-            for var in constants.PARAM_NAMES_SHORT
-            if not constants.IS_3D[var]
-        ]
-
-        # Stack 3D variables
-        datasets_3d = [
-            xr.open_zarr(file, consolidated=True)[variables_3d]
-            .sel(z_1=constants.VERTICAL_LEVELS)
-            .to_array()
-            .stack(var=("variable", "z_1"))
-            .transpose("time", "x_1", "y_1", "var")
-            for file in self.zarr_files
-        ]
-
-        # Stack 2D variables without selecting along z_1
-        datasets_2d = [
-            xr.open_zarr(file, consolidated=True)[variables_2d]
-            .to_array()
-            .expand_dims(z_1=[0])
-            .stack(var=("variable", "z_1"))
-            .transpose("time", "x_1", "y_1", "var")
-            for file in self.zarr_files
-        ]
-
-        # Combine 3D and 2D datasets
-        self.zarr_datasets = [
-            xr.concat([ds_3d, ds_2d], dim="var").sortby("var")
-            for ds_3d, ds_2d in zip(datasets_3d, datasets_2d)
-        ]
+        self.zarr_files = self.get_3d_and_2d(self.zarr_files)
+        self.forecast_files = self.get_3d_and_2d(self.forecast_files)
 
         self.standardize = standardize
         if standardize:
@@ -158,6 +133,46 @@ class WeatherDataset(torch.utils.data.Dataset):
 
         self.random_subsample = split == "train"
         self.split = split
+
+    @staticmethod
+    def get_3d_and_2d(dataset):
+        # Separate 3D and 2D variables
+        variables_3d = [
+            var for var in constants.PARAM_NAMES_SHORT if constants.IS_3D[var]
+        ]
+        variables_2d = [
+            var
+            for var in constants.PARAM_NAMES_SHORT
+            if not constants.IS_3D[var]
+        ]
+
+        # Stack 3D variables
+        datasets_3d = [
+            xr.open_zarr(file, consolidated=True)[variables_3d]
+            .sel(z_1=constants.VERTICAL_LEVELS)
+            .to_array()
+            .stack(var=("variable", "z_1"))
+            .transpose("time", "x_1", "y_1", "var")
+            for file in dataset
+        ]
+
+        # Stack 2D variables without selecting along z_1
+        datasets_2d = [
+            xr.open_zarr(file, consolidated=True)[variables_2d]
+            .to_array()
+            .expand_dims(z_1=[0])
+            .stack(var=("variable", "z_1"))
+            .transpose("time", "x_1", "y_1", "var")
+            for file in dataset
+        ]
+
+        # Combine 3D and 2D datasets
+        dataset = [
+            xr.concat([ds_3d, ds_2d], dim="var").sortby("var")
+            for ds_3d, ds_2d in zip(datasets_3d, datasets_2d)
+        ]
+
+        return dataset
 
     def __len__(self):
         num_steps = (
@@ -184,26 +199,35 @@ class WeatherDataset(torch.utils.data.Dataset):
         sample_archive = xr.concat(
             self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
         )
+        forecast_archive = xr.concat(
+            self.forecast_files, dim = "time"
+        )
 
         sample_xr = sample_archive.isel(
             time=slice(idx_sample, idx_sample + num_steps)
         )
+        forecast_xr = forecast_archive.isel(
+            time=slice(num_steps) #FIXME find out what this does on line 162 to adapt here
+        )
 
         # (N_t', N_x, N_y, d_features')
         sample = torch.tensor(sample_xr.values, dtype=torch.float32)
+        forecast_sample = torch.tensor(forecast_xr.values, dtype=torch.float32)
 
         sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
+        forecast = forecast_sample.flatten(1,2)
 
         if self.standardize:
             # Standardize sample
             sample = (sample - self.data_mean) / self.data_std
+            forecast = (forecast - self.data_mean) / self.data_std
 
         # Split up sample in init. states and target states
         init_states = sample[:2]  # (2, N_grid, d_features)
         target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
 
-        return init_states, target_states
-
+        return init_states, target_states, forecast
+    
 
 class WeatherDataModule(pl.LightningDataModule):
     """DataModule for weather data."""
@@ -216,6 +240,7 @@ class WeatherDataModule(pl.LightningDataModule):
         subset=False,
         batch_size=4,
         num_workers=16,
+
     ):
         super().__init__()
         self.dataset_name = dataset_name
@@ -223,6 +248,7 @@ class WeatherDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.standardize = standardize
         self.subset = subset
+
 
     def prepare_data(self):
         # download, split, etc... called only on 1 GPU/TPU in distributed
@@ -255,6 +281,7 @@ class WeatherDataModule(pl.LightningDataModule):
                 subset=self.subset,
                 batch_size=self.batch_size,
             )
+        
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -282,3 +309,4 @@ class WeatherDataModule(pl.LightningDataModule):
             shuffle=False,
             pin_memory=False,
         )
+    

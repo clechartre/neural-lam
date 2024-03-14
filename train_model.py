@@ -61,7 +61,7 @@ def init_wandb(args):
             log_model=True,
         )
         wandb.save("slurm_train.sh")
-        wandb.save("neural_lam/constants.PY")
+        wandb.save("neural_lam/constants.py")
     else:
         wandb.init(
             project=constants.WANDB_PROJECT,
@@ -95,6 +95,12 @@ def main():
         default="meps_example",
         help="Dataset, corresponding to name in data directory "
         "(default: meps_example)",
+    )
+    parser.add_argument(
+        "--forecast_dataset",
+        type=bool,
+        default=False,
+        help="Plot the forecast dataset too?",
     )
     parser.add_argument(
         "--model",
@@ -331,7 +337,7 @@ def main():
     # Only init once, on rank 0 only
     if trainer.global_rank == 0:
         utils.init_wandb_metrics(logger)  # Do after wandb.init
-    if args.eval:
+    if args.eval and args.eval != "forecast":
         print_eval(args.eval)
         if args.eval == "val":
             data_module.split = "val"
