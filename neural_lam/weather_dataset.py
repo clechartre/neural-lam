@@ -43,7 +43,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         )
 
         self.forecast_dir_path = os.path.join(
-            "data", dataset_name, "samples", "forecast"
+            "data", dataset_name, "samples", "test copy"
         ) if split != "forecast" else self.sample_dir_path
 
         self.batch_size = batch_size
@@ -147,11 +147,9 @@ class WeatherDataset(torch.utils.data.Dataset):
             if not constants.IS_3D[var]
         ]
 
-        print(constants.VERTICAL_LEVELS)
-        print(variables_2d, variables_3d)
         # Stack 3D variables
         datasets_3d = [
-            xr.open_zarr(file, consolidated=True)[variables_3d]
+            xr.open_zarr(file, consolidated=None)[variables_3d] # Consolidate=True conflicts with the metadata file
             .sel(z_1=constants.VERTICAL_LEVELS) # FIXME this is where the issue is - reindexing data using an index that does not have unique values?
             .to_array()
             .stack(var=("variable", "z_1"))
@@ -161,9 +159,10 @@ class WeatherDataset(torch.utils.data.Dataset):
 
         # Stack 2D variables without selecting along z_1
         datasets_2d = [
-            xr.open_zarr(file, consolidated=True)[variables_2d]
+            xr.open_zarr(file, consolidated=None)[variables_2d]
             .to_array()
-            .expand_dims(z_1=[0])
+            # Add check to only expand_dims if 'z_1' is not already present
+            .pipe(lambda ds: ds if 'z_1' in ds.dims else ds.expand_dims(z_1=[0]))
             .stack(var=("variable", "z_1"))
             .transpose("time", "x_1", "y_1", "var")
             for file in dataset
@@ -313,7 +312,7 @@ class WeatherDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.test_dataset,
+            self.test_dataset.zarr_files,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=False,
