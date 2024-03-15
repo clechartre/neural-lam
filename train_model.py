@@ -331,7 +331,7 @@ def main():
     # Only init once, on rank 0 only
     if trainer.global_rank == 0:
         utils.init_wandb_metrics(logger)  # Do after wandb.init
-    if args.eval and args.eval != "forecast":
+    if args.eval:
         print_eval(args.eval)
         if args.eval == "val":
             data_module.split = "val"

@@ -34,17 +34,14 @@ class WeatherDataset(torch.utils.data.Dataset):
         standardize=True,
         subset=False,
         batch_size=4,
+        control_only=False,
     ):
         super().__init__()
 
-        assert split in ("train", "val", "test"), "Unknown dataset split"
+        assert split in ("train", "val", "test","forecast"), "Unknown dataset split"
         self.sample_dir_path = os.path.join(
             "data", dataset_name, "samples", split
         )
-
-        self.forecast_dir_path = os.path.join(
-            "data", dataset_name, "samples", "test copy"
-        ) if split != "forecast" else self.sample_dir_path
 
         self.batch_size = batch_size
         self.batch_index = 0
@@ -53,11 +50,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.zarr_files = sorted(
             glob.glob(os.path.join(self.sample_dir_path, "data*.zarr"))
         )
-        self.forecast_files = sorted(
-            glob.glob(os.path.join(self.forecast_dir_path, "data*.zarr"))
-        ) if split != "forecast" else []
-
-        if len(self.zarr_files) == 0 and len(self.forecast_files) == 0:
+        if len(self.zarr_files) == 0:
             raise ValueError("No .zarr files found in directory")
 
         if subset:
@@ -100,9 +93,7 @@ class WeatherDataset(torch.utils.data.Dataset):
                         )
                         break
             else:
-                self.zarr_files = self.zarr_files[0:2] # FIXME what does this exactly do? 
-            
-            self.forecast_files = self.forecast_files[0:2]
+                self.zarr_files = self.zarr_files[0:2]
 
             start_datetime = (
                 self.zarr_files[0]
@@ -113,8 +104,43 @@ class WeatherDataset(torch.utils.data.Dataset):
 
             print("Data subset of 200 samples starts on the", start_datetime)
 
-        self.zarr_files = self.get_3d_and_2d(self.zarr_files)
-        self.forecast_files = self.get_3d_and_2d(self.forecast_files)
+        # Separate 3D and 2D variables
+        variables_3d = [
+            var for var in constants.PARAM_NAMES_SHORT if constants.IS_3D[var]
+        ]
+        variables_2d = [
+            var
+            for var in constants.PARAM_NAMES_SHORT
+            if not constants.IS_3D[var]
+        ]
+
+        # Stack 3D variables
+        datasets_3d = [
+            xr.open_zarr(file, consolidated=True)[variables_3d]
+            .sel(z_1=constants.VERTICAL_LEVELS)
+            .to_array()
+            .stack(var=("variable", "z_1"))
+            .transpose("time", "x_1", "y_1", "var")
+            for file in self.zarr_files
+        ]
+
+        # Stack 2D variables without selecting along z_1
+        datasets_2d = [
+            xr.open_zarr(file, consolidated=True)[variables_2d]
+            .to_array()
+            .pipe(lambda ds: ds if 'z_1' in ds.dims else ds.expand_dims(z_1=[0]))
+            .stack(var=("variable", "z_1"))
+            .transpose("time", "x_1", "y_1", "var")
+            for file in self.zarr_files
+        ]
+
+        for ds_3d, ds_2d in zip(datasets_3d, datasets_2d):
+            print(ds_3d, ds_2d)
+        # Combine 3D and 2D datasets
+        self.zarr_datasets = [
+            xr.merge([ds_3d, ds_2d], concat_dim="var").sortby("var")
+            for ds_3d, ds_2d in zip(datasets_3d, datasets_2d)
+        ]
 
         self.standardize = standardize
         if standardize:
@@ -135,49 +161,6 @@ class WeatherDataset(torch.utils.data.Dataset):
         self.random_subsample = split == "train"
         self.split = split
 
-    @staticmethod
-    def get_3d_and_2d(dataset):
-        # Separate 3D and 2D variables
-        variables_3d = [
-            var for var in constants.PARAM_NAMES_SHORT if constants.IS_3D[var]
-        ]
-        variables_2d = [
-            var
-            for var in constants.PARAM_NAMES_SHORT
-            if not constants.IS_3D[var]
-        ]
-
-        # Stack 3D variables
-        datasets_3d = [
-            xr.open_zarr(file, consolidated=None)[variables_3d] # Consolidate=True conflicts with the metadata file
-            .sel(z_1=constants.VERTICAL_LEVELS) # FIXME this is where the issue is - reindexing data using an index that does not have unique values?
-            .to_array()
-            .stack(var=("variable", "z_1"))
-            .transpose("time", "x_1", "y_1", "var")
-            for file in dataset
-        ]
-
-        # Stack 2D variables without selecting along z_1
-        datasets_2d = [
-            xr.open_zarr(file, consolidated=None)[variables_2d]
-            .to_array()
-            # Add check to only expand_dims if 'z_1' is not already present
-            .pipe(lambda ds: ds if 'z_1' in ds.dims else ds.expand_dims(z_1=[0]))
-            .stack(var=("variable", "z_1"))
-            .transpose("time", "x_1", "y_1", "var")
-            for file in dataset
-        ]
-
-        # Combine 3D and 2D datasets
-        dataset = [
-            xr.concat([ds_3d, ds_2d], dim="var").sortby("var")
-            for ds_3d, ds_2d in zip(datasets_3d, datasets_2d)
-        ]
-
-        return dataset
-
-
-
     def __len__(self):
         num_steps = (
             constants.TRAIN_HORIZON
@@ -194,51 +177,66 @@ class WeatherDataset(torch.utils.data.Dataset):
             else constants.EVAL_HORIZON
         )
 
-        # Calculate which zarr files need to be loaded
-        start_file_idx = idx // constants.CHUNK_SIZE
-        end_file_idx = (idx + num_steps) // constants.CHUNK_SIZE
-        # Index of current slice
-        idx_sample = idx % constants.CHUNK_SIZE
+        if self.split == "forecast": 
 
-        # Calculate which forecast files need to be loaded 
-        forecast_start_file_idx = idx // (2*constants.CHUNK_SIZE)
-        forecast_end_file_idx = (idx + 2*num_steps) // (2*constants.CHUNK_SIZE)
-        # Index of current slice
-        forecast_idx_sample = idx % (2*constants.CHUNK_SIZE)
+            # Calculate which zarr files need to be loaded
+            start_file_idx = idx // ( 2* constants.CHUNK_SIZE)
+            end_file_idx = (idx + (2* num_steps)) // ( 2* constants.CHUNK_SIZE)
+            # Index of current slice
+            idx_sample = idx % ( 2* constants.CHUNK_SIZE)
 
-        sample_archive = xr.concat(
-            self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
-        )
-        forecast_archive = xr.concat(
-            self.forecast_files[forecast_start_file_idx : forecast_end_file_idx + 1], dim = "time" # FIXME check it's right to use forecast_files as equivalent to zarr_datasets
-        )
+            sample_archive = xr.concat(
+                self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
+            )
+
+            sample_xr = sample_archive.isel(
+                time=slice(idx_sample, idx_sample + (2* num_steps))
+            )
+
+            # (N_t', N_x, N_y, d_features')
+            sample = torch.tensor(sample_xr.values, dtype=torch.float32)
+
+            sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
+
+            if self.standardize:
+                # Standardize sample
+                sample = (sample - self.data_mean) / self.data_std
+
+            forecast_states = sample
+
+            return forecast_states
+
+        else:
 
 
-        sample_xr = sample_archive.isel(
-            time=slice(idx_sample, idx_sample + num_steps)
-        )
-        forecast_xr = forecast_archive.isel(
-            time=slice(forecast_idx_sample, forecast_idx_sample + 2*num_steps) # FIXME maybe num steps could also be twice then - depending on the temporal scale of the dataset
-        )
+            # Calculate which zarr files need to be loaded
+            start_file_idx = idx // constants.CHUNK_SIZE
+            end_file_idx = (idx + num_steps) // constants.CHUNK_SIZE
+            # Index of current slice
+            idx_sample = idx % constants.CHUNK_SIZE
 
-        # (N_t', N_x, N_y, d_features')
-        sample = torch.tensor(sample_xr.values, dtype=torch.float32)
-        forecast_sample = torch.tensor(forecast_xr.values, dtype=torch.float32)
+            sample_archive = xr.concat(
+                self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
+            )
 
-        sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
-        forecast_sample = forecast_sample.flatten(1,2)
+            sample_xr = sample_archive.isel(
+                time=slice(idx_sample, idx_sample + num_steps)
+            )
 
-        if self.standardize:
-            # Standardize sample
-            sample = (sample - self.data_mean) / self.data_std
-            forecast_sample = (forecast_sample - self.data_mean) / self.data_std
+            # (N_t', N_x, N_y, d_features')
+            sample = torch.tensor(sample_xr.values, dtype=torch.float32)
 
-        # Split up sample in init. states and target states
-        init_states = sample[:2]  # (2, N_grid, d_features)
-        target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
-        forecast_states = forecast_sample 
+            sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
 
-        return init_states, target_states, forecast_states
+            if self.standardize:
+                # Standardize sample
+                sample = (sample - self.data_mean) / self.data_std
+
+            # Split up sample in init. states and target states
+            init_states = sample[:2]  # (2, N_grid, d_features)
+            target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
+
+            return init_states, target_states
 
 
 class WeatherDataModule(pl.LightningDataModule):
@@ -291,6 +289,14 @@ class WeatherDataModule(pl.LightningDataModule):
                 subset=self.subset,
                 batch_size=self.batch_size,
             )
+            self.forecast_dataset = WeatherDataset(
+                self.dataset_name,
+                split="forecast",
+                standardize=self.standardize,
+                subset=False,
+                batch_size=self.batch_size,
+            )
+
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -312,7 +318,16 @@ class WeatherDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.test_dataset.zarr_files,
+            self.test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            pin_memory=False,
+        )
+    
+    def forecast_dataloader(self): 
+        return torch.utils.data.DataLoader(
+            self.forecast_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=False,

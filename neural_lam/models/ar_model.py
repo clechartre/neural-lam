@@ -297,7 +297,7 @@ class ARModel(pl.LightningModule):
         batch_static_features: (B, num_grid_nodes, d_static_f), optional
         forcing_features: (B, pred_steps, num_grid_nodes, d_forcing), optional
         """
-        init_states, target_states, forecast = batch[:2]
+        init_states, target_states= batch[:2]
         batch_static_features = batch[2] if len(batch) > 2 else None
         forcing_features = batch[3] if len(batch) > 3 else None
 
@@ -310,13 +310,13 @@ class ARModel(pl.LightningModule):
         # prediction: (B, pred_steps, num_grid_nodes, d_f)
         # pred_std: (B, pred_steps, num_grid_nodes, d_f) or (d_f,)
 
-        return prediction, target_states, pred_std, forecast
+        return prediction, target_states, pred_std
 
     def training_step(self, batch):
         """
         Train on single batch
         """
-        prediction, target, pred_std, forecast = self.common_step(batch)
+        prediction, target, pred_std= self.common_step(batch)
 
         # Compute loss
         batch_loss = torch.mean(
@@ -348,7 +348,7 @@ class ARModel(pl.LightningModule):
         """
         Run validation on single batch
         """
-        prediction, target, pred_std, forecast = self.common_step(batch)
+        prediction, target, pred_std = self.common_step(batch)
 
         time_step_loss = torch.mean(
             self.loss(
@@ -394,7 +394,7 @@ class ARModel(pl.LightningModule):
         """
         Run test on single batch
         """
-        prediction, target, pred_std, forecast = self.common_step(batch)
+        prediction, target, pred_std, = self.common_step(batch)
         # prediction: (B, pred_steps, num_grid_nodes, d_f)
         # pred_std: (B, pred_steps, num_grid_nodes, d_f) or (d_f,)
 
@@ -449,9 +449,9 @@ class ARModel(pl.LightningModule):
 
         # Plot example predictions (on rank 0 only)
         if self.trainer.is_global_zero:
-            self.plot_examples(batch, batch_idx, forecast, prediction=prediction)
+            self.plot_examples(batch, batch_idx, prediction=prediction)
 
-    def plot_examples(self, batch, batch_idx, forecast, prediction=None):
+    def plot_examples(self, batch, batch_idx, prediction=None):
         """
         Plot the first n_examples forecasts from batch
 
@@ -461,9 +461,16 @@ class ARModel(pl.LightningModule):
             Generate if None.
         """
         if prediction is None:
-            prediction, target, forecast = self.common_step(batch)
+            prediction, target = self.common_step(batch)
 
         target = batch[1]
+
+        # Assuming you have access to the forecast dataloader within this context
+        forecast_dataloader = self.trainer.datamodule.forecast_dataloader()
+
+        # Here, decide how you want to select the forecast data that matches your current batch
+        # For simplicity, let's load the first batch of the forecast dataset. Adjust this as needed.
+        forecast = next(iter(forecast_dataloader))
 
         if (
             self.global_rank == 0
