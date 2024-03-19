@@ -78,7 +78,7 @@ def plot_error_map(errors, global_mean, step_length=1, title=None):
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
 def plot_prediction(pred, target, forecast, title=None, vrange=None):
     """
-    Plot example prediction, forecast, and gronnd truth.
+    Plot example prediction, forecast, and ground truth.
     Each has shape (N_grid,)
     """
     # Get common scale for values
@@ -93,7 +93,7 @@ def plot_prediction(pred, target, forecast, title=None, vrange=None):
     lon, lat = unrotate_latlon(data_latlon)
 
     fig, axes = plt.subplots(
-        2,
+        3,
         1,
         figsize=constants.FIG_SIZE,
         subplot_kw={"projection": constants.SELECTED_PROJ},

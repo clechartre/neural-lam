@@ -15,6 +15,7 @@ from torch import nn
 
 # First-party
 from neural_lam import constants, metrics, utils, vis
+from neural_lam.weather_dataset import WeatherDataModule
 
 
 # pylint: disable=too-many-public-methods
@@ -297,7 +298,7 @@ class ARModel(pl.LightningModule):
         batch_static_features: (B, num_grid_nodes, d_static_f), optional
         forcing_features: (B, pred_steps, num_grid_nodes, d_forcing), optional
         """
-        init_states, target_states= batch[:2]
+        init_states, target_states = batch[:2]
         batch_static_features = batch[2] if len(batch) > 2 else None
         forcing_features = batch[3] if len(batch) > 3 else None
 
@@ -316,7 +317,7 @@ class ARModel(pl.LightningModule):
         """
         Train on single batch
         """
-        prediction, target, pred_std= self.common_step(batch)
+        prediction, target, pred_std = self.common_step(batch)
 
         # Compute loss
         batch_loss = torch.mean(
@@ -394,7 +395,7 @@ class ARModel(pl.LightningModule):
         """
         Run test on single batch
         """
-        prediction, target, pred_std, = self.common_step(batch)
+        prediction, target, pred_std = self.common_step(batch)
         # prediction: (B, pred_steps, num_grid_nodes, d_f)
         # pred_std: (B, pred_steps, num_grid_nodes, d_f) or (d_f,)
 
@@ -463,14 +464,19 @@ class ARModel(pl.LightningModule):
         if prediction is None:
             prediction, target = self.common_step(batch)
 
-        target = batch[1]
+        target = batch[1] 
 
-        # Assuming you have access to the forecast dataloader within this context
-        forecast_dataloader = self.trainer.datamodule.forecast_dataloader()
-
-        # Here, decide how you want to select the forecast data that matches your current batch
-        # For simplicity, let's load the first batch of the forecast dataset. Adjust this as needed.
-        forecast = next(iter(forecast_dataloader))
+        forecast_data_module = WeatherDataModule(
+            "cosmo",
+            split="forecast",
+            standardize=False,
+            subset=False,
+            batch_size=6,
+            num_workers=2
+        )
+        forecast_data_module.prepare_data()
+        forecast_data_module.setup(stage = "test")
+        forecast_loader = forecast_data_module.forecast_dataloader() 
 
         if (
             self.global_rank == 0
@@ -488,6 +494,10 @@ class ARModel(pl.LightningModule):
 
             prediction = prediction[index_within_batch]
             target = target[index_within_batch]
+            for forecast_batch in forecast_loader:
+                forecast = forecast_batch[0]  # tensor 
+                break 
+            forecast = forecast.to(prediction.device)
 
             # Rescale to original data scale
             prediction_rescaled = prediction * self.data_std + self.data_mean
