@@ -461,6 +461,7 @@ class ARModel(pl.LightningModule):
         prediction: (B, pred_steps, num_grid_nodes, d_f), existing prediction.
             Generate if None.
         """
+        wandb.init()
         if prediction is None:
             prediction, target = self.common_step(batch)
 

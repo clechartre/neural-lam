@@ -38,7 +38,7 @@ class WeatherDataset(torch.utils.data.Dataset):
     ):
         super().__init__()
 
-        assert split in ("train", "val", "test","forecast"), "Unknown dataset split"
+        assert split in ("train", "val", "test","forecast", "pred"), "Unknown dataset split"
         self.sample_dir_path = os.path.join(
             "data", dataset_name, "samples", split
         )
@@ -134,11 +134,9 @@ class WeatherDataset(torch.utils.data.Dataset):
             for file in self.zarr_files
         ]
 
-        for ds_3d, ds_2d in zip(datasets_3d, datasets_2d):
-            print(ds_3d, ds_2d)
         # Combine 3D and 2D datasets
         self.zarr_datasets = [
-            xr.merge([ds_3d, ds_2d], concat_dim="var").sortby("var")
+            xr.concat([ds_3d, ds_2d], dim="var").sortby("var")
             for ds_3d, ds_2d in zip(datasets_3d, datasets_2d)
         ]
 
@@ -177,65 +175,36 @@ class WeatherDataset(torch.utils.data.Dataset):
             else constants.EVAL_HORIZON
         )
 
-        if self.split == "forecast": 
+        # Calculate which zarr files need to be loaded
+        start_file_idx = idx // constants.CHUNK_SIZE
+        end_file_idx = (idx + num_steps) // constants.CHUNK_SIZE
+        # Index of current slice
+        idx_sample = idx % constants.CHUNK_SIZE
 
-            # Calculate which zarr files need to be loaded
-            start_file_idx = idx // ( 2* constants.CHUNK_SIZE)
-            end_file_idx = (idx + (2* num_steps)) // ( 2* constants.CHUNK_SIZE)
-            # Index of current slice
-            idx_sample = idx % ( 2* constants.CHUNK_SIZE)
+        sample_archive = xr.concat(
+            self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
+        )
 
-            sample_archive = xr.concat(
-                self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
-            )
+        sample_xr = sample_archive.isel(
+            time=slice(idx_sample, idx_sample + num_steps)
+        )
 
-            sample_xr = sample_archive.isel(
-                time=slice(idx_sample, idx_sample + (2* num_steps))
-            )
+        # (N_t', N_x, N_y, d_features')
+        sample = torch.tensor(sample_xr.values, dtype=torch.float32)
 
-            # (N_t', N_x, N_y, d_features')
-            sample = torch.tensor(sample_xr.values, dtype=torch.float32)
+        sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
 
-            sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
+        if self.standardize:
+            # Standardize sample
+            sample = (sample - self.data_mean) / self.data_std
 
-            if self.standardize:
-                # Standardize sample
-                sample = (sample - self.data_mean) / self.data_std
-
-            forecast_states = sample
-
-            return forecast_states
-
+        # Split up sample in init. states and target states
+        init_states = sample[:2]  # (2, N_grid, d_features)
+        target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
+    
+        if self.split in ["forecast", "pred"]: 
+            return sample # alternatively torch.vstack((init_statesm target_states))
         else:
-
-
-            # Calculate which zarr files need to be loaded
-            start_file_idx = idx // constants.CHUNK_SIZE
-            end_file_idx = (idx + num_steps) // constants.CHUNK_SIZE
-            # Index of current slice
-            idx_sample = idx % constants.CHUNK_SIZE
-
-            sample_archive = xr.concat(
-                self.zarr_datasets[start_file_idx : end_file_idx + 1], dim="time"
-            )
-
-            sample_xr = sample_archive.isel(
-                time=slice(idx_sample, idx_sample + num_steps)
-            )
-
-            # (N_t', N_x, N_y, d_features')
-            sample = torch.tensor(sample_xr.values, dtype=torch.float32)
-
-            sample = sample.flatten(1, 2)  # (N_t, N_grid, d_features)
-
-            if self.standardize:
-                # Standardize sample
-                sample = (sample - self.data_mean) / self.data_std
-
-            # Split up sample in init. states and target states
-            init_states = sample[:2]  # (2, N_grid, d_features)
-            target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
-
             return init_states, target_states
 
 
@@ -263,7 +232,7 @@ class WeatherDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage=None):
-        # make assignments here (val/train/test split) called on every process
+        # make assignments here (val/train/test/predict split) called on every process
         # in DDP
         if stage == "fit" or stage is None:
             self.train_dataset = WeatherDataset(
@@ -297,6 +266,15 @@ class WeatherDataModule(pl.LightningDataModule):
                 batch_size=self.batch_size,
             )
 
+        if stage == "predict" or stage is None:
+            self.predict_dataset = WeatherDataset(
+                self.dataset_name,
+                split="pred", 
+                standardize=self.standardize,
+                subset=False,
+                batch_size=1
+            )
+
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -328,6 +306,15 @@ class WeatherDataModule(pl.LightningDataModule):
     def forecast_dataloader(self): 
         return torch.utils.data.DataLoader(
             self.forecast_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            pin_memory=False,
+        )
+    
+    def predict_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.predict_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=False,
