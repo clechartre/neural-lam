@@ -254,8 +254,7 @@ def main():
     assert args.eval in (
         None,
         "val",
-        "test",
-        "predict"
+        "test"
     ), f"Unknown eval setting: {args.eval}"
 
     # Set seed

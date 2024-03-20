@@ -38,7 +38,7 @@ class WeatherDataset(torch.utils.data.Dataset):
     ):
         super().__init__()
 
-        assert split in ("train", "val", "test","forecast", "pred"), "Unknown dataset split"
+        assert split in ("train", "val", "test","forecast"), "Unknown dataset split"
         self.sample_dir_path = os.path.join(
             "data", dataset_name, "samples", split
         )
@@ -202,7 +202,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         init_states = sample[:2]  # (2, N_grid, d_features)
         target_states = sample[2:]  # (sample_length-2, N_grid, d_features)
     
-        if self.split in ["forecast", "pred"]: 
+        if self.split == "forecast": 
             return sample # alternatively torch.vstack((init_statesm target_states))
         else:
             return init_states, target_states
@@ -266,15 +266,6 @@ class WeatherDataModule(pl.LightningDataModule):
                 batch_size=self.batch_size,
             )
 
-        if stage == "predict" or stage is None:
-            self.predict_dataset = WeatherDataset(
-                self.dataset_name,
-                split="pred", 
-                standardize=self.standardize,
-                subset=False,
-                batch_size=1
-            )
-
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -312,11 +303,3 @@ class WeatherDataModule(pl.LightningDataModule):
             pin_memory=False,
         )
     
-    def predict_dataloader(self):
-        return torch.utils.data.DataLoader(
-            self.predict_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-            pin_memory=False,
-        )
