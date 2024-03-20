@@ -445,7 +445,6 @@ class ARModel(pl.LightningModule):
         prediction: (B, pred_steps, num_grid_nodes, d_f), existing prediction.
             Generate if None.
         """
-        wandb.init()
         if prediction is None:
             prediction, target = self.common_step(batch)
 
@@ -693,71 +692,77 @@ class ARModel(pl.LightningModule):
         Compute test metrics and make plots at the end of test epoch.
         Will gather stored tensors and perform plotting and logging on rank 0.
         """
-        # Create error maps for all test metrics
-        self.aggregate_and_plot_metrics(self.test_metrics, prefix="test")
+        if self.stage == "test": 
+            # Create error maps for all test metrics
+            self.aggregate_and_plot_metrics(self.test_metrics, prefix="test")
 
-        # Plot spatial loss maps
-        spatial_loss_tensor = self.all_gather_cat(
-            torch.cat(self.spatial_loss_maps, dim=0)
-        )  # (N_test, N_log, num_grid_nodes)
-        if self.trainer.is_global_zero:
-            mean_spatial_loss = torch.mean(
-                spatial_loss_tensor, dim=0
-            )  # (N_log, num_grid_nodes)
+            # Plot spatial loss maps
+            spatial_loss_tensor = self.all_gather_cat(
+                torch.cat(self.spatial_loss_maps, dim=0)
+            )  # (N_test, N_log, num_grid_nodes)
+            if self.trainer.is_global_zero:
+                mean_spatial_loss = torch.mean(
+                    spatial_loss_tensor, dim=0
+                )  # (N_log, num_grid_nodes)
 
-            loss_map_figs = [
-                vis.plot_spatial_error(
-                    loss_map,
-                    title=f"Test loss, t={t_i} ({self.step_length * t_i} h)",
-                )
-                for t_i, loss_map in zip(
-                    constants.VAL_STEP_LOG_ERRORS, mean_spatial_loss
-                )
-            ]
-
-            # log all to same wandb key, sequentially
-            for fig in loss_map_figs:
-                wandb.log({"test_loss": wandb.Image(fig)})
-
-            # also make without title and save as pdf
-            pdf_loss_map_figs = [
-                vis.plot_spatial_error(loss_map)
-                for loss_map in mean_spatial_loss
-            ]
-            pdf_loss_maps_dir = os.path.join(wandb.run.dir, "spatial_loss_maps")
-            os.makedirs(pdf_loss_maps_dir, exist_ok=True)
-            for t_i, fig in zip(
-                constants.VAL_STEP_LOG_ERRORS, pdf_loss_map_figs
-            ):
-                fig.savefig(os.path.join(pdf_loss_maps_dir, f"loss_t{t_i}.pdf"))
-            # save mean spatial loss as .pt file also
-            torch.save(
-                mean_spatial_loss.cpu(),
-                os.path.join(wandb.run.dir, "mean_spatial_loss.pt"),
-            )
-
-            dir_path = f"{wandb.run.dir}/media/images"
-
-            for var_name, _ in self.selected_vars_units:
-                var_indices = self.variable_indices[var_name]
-                for lvl_i, _ in enumerate(var_indices):
-                    # Calculate var_vrange for each index
-                    lvl = constants.VERTICAL_LEVELS[lvl_i]
-
-                    # Get all the images for the current variable and index
-                    images = sorted(
-                        glob.glob(f"{dir_path}/{var_name}_lvl_{lvl:02}_t_*.png")
+                loss_map_figs = [
+                    vis.plot_spatial_error(
+                        loss_map,
+                        title=f"Test loss, t={t_i} ({self.step_length * t_i} h)",
                     )
-                    # Generate the GIF
-                    with imageio.get_writer(
-                        f"{dir_path}/{var_name}_lvl_{lvl:02}.gif",
-                        mode="I",
-                        fps=1,
-                    ) as writer:
-                        for filename in images:
-                            image = imageio.imread(filename)
-                            writer.append_data(image)
-        self.spatial_loss_maps.clear()
+                    for t_i, loss_map in zip(
+                        constants.VAL_STEP_LOG_ERRORS, mean_spatial_loss
+                    )
+                ]
+
+                # log all to same wandb key, sequentially
+                for fig in loss_map_figs:
+                    wandb.log({"test_loss": wandb.Image(fig)})
+
+                # also make without title and save as pdf
+                pdf_loss_map_figs = [
+                    vis.plot_spatial_error(loss_map)
+                    for loss_map in mean_spatial_loss
+                ]
+                pdf_loss_maps_dir = os.path.join(wandb.run.dir, "spatial_loss_maps")
+                os.makedirs(pdf_loss_maps_dir, exist_ok=True)
+                for t_i, fig in zip(
+                    constants.VAL_STEP_LOG_ERRORS, pdf_loss_map_figs
+                ):
+                    fig.savefig(os.path.join(pdf_loss_maps_dir, f"loss_t{t_i}.pdf"))
+                # save mean spatial loss as .pt file also
+                torch.save(
+                    mean_spatial_loss.cpu(),
+                    os.path.join(wandb.run.dir, "mean_spatial_loss.pt"),
+                )
+
+                dir_path = f"{wandb.run.dir}/media/images"
+
+                for var_name, _ in self.selected_vars_units:
+                    var_indices = self.variable_indices[var_name]
+                    for lvl_i, _ in enumerate(var_indices):
+                        # Calculate var_vrange for each index
+                        lvl = constants.VERTICAL_LEVELS[lvl_i]
+
+                        # Get all the images for the current variable and index
+                        images = sorted(
+                            glob.glob(f"{dir_path}/{var_name}_lvl_{lvl:02}_t_*.png")
+                        )
+                        # Generate the GIF
+                        with imageio.get_writer(
+                            f"{dir_path}/{var_name}_lvl_{lvl:02}.gif",
+                            mode="I",
+                            fps=1,
+                        ) as writer:
+                            for filename in images:
+                                image = imageio.imread(filename)
+                                writer.append_data(image)
+            self.spatial_loss_maps.clear()
+        
+        elif self.stage == "predict": 
+            raise NotImplementedError
+        # here we would want to make a plot of the inference vs the forecast 
+        
 
     def on_load_checkpoint(self, checkpoint):
         """
