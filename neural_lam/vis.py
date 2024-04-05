@@ -76,9 +76,9 @@ def plot_error_map(errors, global_mean, step_length=1, title=None):
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def plot_prediction(pred, target, title=None, vrange=None):
+def plot_prediction(pred, target, forecast, title=None, vrange=None):
     """
-    Plot example prediction and grond truth.
+    Plot example prediction, forecast, and ground truth.
     Each has shape (N_grid,)
     """
     # Get common scale for values
@@ -93,14 +93,14 @@ def plot_prediction(pred, target, title=None, vrange=None):
     lon, lat = unrotate_latlon(data_latlon)
 
     fig, axes = plt.subplots(
-        2,
+        3,
         1,
         figsize=constants.FIG_SIZE,
         subplot_kw={"projection": constants.SELECTED_PROJ},
     )
 
     # Plot pred and target
-    for ax, data in zip(axes, (target, pred)):
+    for ax, data in zip(axes, (target, pred, forecast)):
         data_grid = data.reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
         contour_set = ax.contourf(
             lon,
@@ -122,6 +122,7 @@ def plot_prediction(pred, target, title=None, vrange=None):
     # Ticks and labels
     axes[0].set_title("Ground Truth", size=15)
     axes[1].set_title("Prediction", size=15)
+    axes[2].set_title("Forecast", size = 15)
     cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
     cbar.ax.tick_params(labelsize=10)
 

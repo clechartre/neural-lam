@@ -2,14 +2,14 @@
 #SBATCH --job-name=NeurWPe
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --partition=pp-short
+#SBATCH --partition=normal
 #SBATCH --account=s83
 #SBATCH --output=lightning_logs/neurwp_eval_out.log
 #SBATCH --error=lightning_logs/neurwp_eval_err.log
 #SBATCH --time=00:30:00
 #SBATCH --no-requeue
 
-export PREPROCESS=true
+export PREPROCESS=false
 export NORMALIZE=false
 
 # Load necessary modules
@@ -33,4 +33,4 @@ ulimit -c 0
 export OMP_NUM_THREADS=16
 
 srun -ul python train_model.py --load "wandb/example.ckpt" --dataset "cosmo" \
-    --eval="test" --subset_ds 1 --n_workers 2 --batch_size 6
+    --eval="test" --subset_ds 1 --n_workers 2 --batch_size 6 
