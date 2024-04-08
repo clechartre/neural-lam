@@ -254,7 +254,8 @@ def main():
     assert args.eval in (
         None,
         "val",
-        "test"
+        "test",
+        "pred",
     ), f"Unknown eval setting: {args.eval}"
 
     # Set seed
@@ -335,16 +336,17 @@ def main():
         utils.init_wandb_metrics(logger)  # Do after wandb.init
 
     # Check if the mode is evaluation (either 'val' or 'test')
-    if args.eval in ["val", "test"]:
+    if args.eval in ["val", "test", "pred"]:
         # Print evaluation mode
         print_eval(args.eval)
         data_module.split = args.eval
         trainer.test(model=model, datamodule=data_module, ckpt_path=args.load)
 
     # Check if the mode is prediction
-    elif args.eval == "predict":
-        data_module.split = "pred"
-        trainer.predict(model=model, datamodule=data_module, return_predictions=True, ckpt_path=args.load)
+    # elif args.eval == "pred":
+    #     data_module.split = "pred"
+    #     trainer.predict(model=model, datamodule=data_module, return_predictions=True, ckpt_path=args.load) 
+    # FIXME it shouldn't be here bc that will want to run an inference step
 
     # Default mode is training
     else:

@@ -8,6 +8,7 @@ import xarray as xr
 # First-party
 from neural_lam import constants, utils
 from neural_lam.rotate_grid import unrotate_latlon
+from neural_lam.weather_dataset import WeatherDataModule
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
@@ -81,6 +82,22 @@ def plot_prediction(pred, target, forecast, title=None, vrange=None):
     Plot example prediction, forecast, and ground truth.
     Each has shape (N_grid,)
     """
+
+    # Load my prediction dataset for plotting
+    predictions_data_module = WeatherDataModule(
+            "cosmo",
+            split="pred",
+            standardize=False,
+            subset=False,
+            batch_size=6,
+            num_workers=2
+        )
+    predictions_data_module.setup()
+    predictions_loader = predictions_data_module.predictions_dataloader() 
+    for predictions_batch in predictions_loader:
+        predictions = predictions_batch[0]  # tensor 
+        break 
+
     # Get common scale for values
     if vrange is None:
         vmin = min(vals.min().cpu().item() for vals in (pred, target))
@@ -93,14 +110,14 @@ def plot_prediction(pred, target, forecast, title=None, vrange=None):
     lon, lat = unrotate_latlon(data_latlon)
 
     fig, axes = plt.subplots(
-        3,
+        4,
         1,
         figsize=constants.FIG_SIZE,
         subplot_kw={"projection": constants.SELECTED_PROJ},
     )
 
     # Plot pred and target
-    for ax, data in zip(axes, (target, pred, forecast)):
+    for ax, data in zip(axes, (target, pred, forecast, predictions)):
         data_grid = data.reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
         contour_set = ax.contourf(
             lon,
@@ -123,6 +140,7 @@ def plot_prediction(pred, target, forecast, title=None, vrange=None):
     axes[0].set_title("Ground Truth", size=15)
     axes[1].set_title("Prediction", size=15)
     axes[2].set_title("Forecast", size = 15)
+    axes[3].set_title("Predictions from numpy array", size = 15)
     cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
     cbar.ax.tick_params(labelsize=10)
 
