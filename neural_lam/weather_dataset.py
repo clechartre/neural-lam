@@ -42,7 +42,7 @@ class WeatherDataset(torch.utils.data.Dataset):
         assert split in ("train", "val", "test","forecast", "pred"), "Unknown dataset split"
 
         if split == "pred": 
-            self.sample_dir_path = "/users/clechart/clechart/neural-lam/wandb/run-20240405_124641-8g7gxt0z/files/results/inference/prediction_0.npy"
+            self.sample_dir_path = "/users/clechart/clechart/neural-lam/wandb/run-20240405_124641-8g7gxt0z/files/results/inference/prediction_3.npy"
             if os.path.exists(self.sample_dir_path):
                 self.np_files = np.load(self.sample_dir_path)
         else: 
