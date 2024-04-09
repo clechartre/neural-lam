@@ -342,12 +342,6 @@ def main():
         data_module.split = args.eval
         trainer.test(model=model, datamodule=data_module, ckpt_path=args.load)
 
-    # Check if the mode is prediction
-    # elif args.eval == "pred":
-    #     data_module.split = "pred"
-    #     trainer.predict(model=model, datamodule=data_module, return_predictions=True, ckpt_path=args.load) 
-    # FIXME it shouldn't be here bc that will want to run an inference step
-
     # Default mode is training
     else:
         data_module.split = "train"

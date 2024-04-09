@@ -29,7 +29,7 @@ def plot_prediction(title=None, vrange=None, save_path=None):
             batch_size=6,
             num_workers=2
         )
-    predictions_data_module.setup(stage='boo')
+    predictions_data_module.setup(stage='predictions_standalone')
     predictions_loader = predictions_data_module.predictions_dataloader() 
     for predictions_batch in predictions_loader:
         predictions = predictions_batch[0]  # tensor 

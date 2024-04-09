@@ -280,13 +280,14 @@ class WeatherDataModule(pl.LightningDataModule):
                 batch_size=self.batch_size,
             )
 
-        self.predictions_dataset = WeatherDataset(
-            self.dataset_name,
-            split="pred",
-            standardize=False,
-            subset=False,
-            batch_size=self.batch_size,
-        )
+        if stage == "predictions_standalone":
+            self.predictions_dataset = WeatherDataset(
+                self.dataset_name,
+                split="pred",
+                standardize=False,
+                subset=False,
+                batch_size=self.batch_size,
+            )
 
 
 
