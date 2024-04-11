@@ -40,7 +40,7 @@ def plot_prediction(title=None, vrange=None, save_path=None):
     lon, lat = unrotate_latlon(data_latlon)
 
     # Get common scale for values
-    bb =  predictions[0,:,:,30]
+    bb =  predictions[0,:,:,24]
     bb_array = np.array(bb)
     if vrange is None:
         vmin = bb_array.min()
@@ -52,7 +52,7 @@ def plot_prediction(title=None, vrange=None, save_path=None):
     # Plot
     for i in range(23):
 
-        aa = predictions[0,i,:,30].reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
+        aa = predictions[0,i,:,24].reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
         data_array = np.array(aa)
 
         fig, axes = plt.subplots(
