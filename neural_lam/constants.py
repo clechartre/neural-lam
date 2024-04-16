@@ -139,7 +139,7 @@ METRICS_INITIALIZED = False
 
 # Plotting
 FIG_SIZE = (15, 10)
-EXAMPLE_FILE = "data/cosmo/samples/train/data_2015112800.zarr"
+EXAMPLE_FILE = "data/cosmo_old/samples/train/data_2015112800.zarr"
 CHUNK_SIZE = 100
 EVAL_DATETIME = "2020100215"
 EVAL_PLOT_VARS = ["TQV"]
