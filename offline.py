@@ -49,15 +49,6 @@ def verify_inference(target, file_path: str, save_path: str, feature_channel: in
     # Unrotate lat and lon coordinates
     lon, lat = unrotate_latlon(target)
 
-    # Set common scale for values
-    total = predictions[0, :, :, 24]
-    total_array = np.array(total)
-    if vrange is None:
-        vmin = total_array.min()
-        vmax = total_array.max()
-    else:
-        vmin, vmax = float(vrange[0].cpu().item()), float(vrange[1].cpu().item())
-
     # Convert predictions to NumPy array
     prediction_array = predictions[0, 1, :, 24].reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
 
