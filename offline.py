@@ -131,13 +131,13 @@ def offline_plotting():
             )
             ax.set_title(f"{args.variable_to_plot} at time step {i}")
 
-            # Add colorbar and titles
-            cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
-            cbar.ax.tick_params(labelsize=10)
-            plt.savefig(
-                os.path.join(args.saving_path, f"plot_offline_{i}.png"), bbox_inches="tight"
-            )
-            plt.close(fig)
+        # Add colorbar and titles
+        cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
+        cbar.ax.tick_params(labelsize=10)
+        plt.savefig(
+            os.path.join(args.saving_path, f"plot_offline_{i}.png"), bbox_inches="tight"
+        )
+        plt.close(fig)
 
 
 def precompute_variable_indices():
