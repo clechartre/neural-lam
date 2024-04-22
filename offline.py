@@ -68,7 +68,6 @@ def offline_plotting():
     predictions_data_module = WeatherDataModule(
         "cosmo_old",
         path_verif_file=args.path_prediction_file,
-        split="verif",
         standardize=False,
         subset=False,
         batch_size=6,
@@ -148,6 +147,7 @@ def offline_plotting():
         plt.close(fig)
 
 
+# pylint: disable=duplicate-code
 def precompute_variable_indices():
     """
     Precompute indices for each variable in the input tensor
