@@ -1,6 +1,7 @@
 """Verification function to plot predictions and target data."""
 
 # Standard library
+import gc
 import os
 from argparse import ArgumentParser
 
@@ -9,12 +10,12 @@ import cartopy.feature as cf
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 import xarray as xr
 
 # First-party
 from neural_lam import constants, utils
-from neural_lam.rotate_grid import unrotate_latlon
 from neural_lam.weather_dataset import WeatherDataModule
 
 
@@ -42,7 +43,7 @@ def offline_plotting():
     parser.add_argument(
         "--saving_path",
         type=str,
-        default="/users/clechart/clechart/neural-lam/figures/",
+        default="",
         help="Path to save the graphical output of this function",
     )
     parser.add_argument(
@@ -59,11 +60,6 @@ def offline_plotting():
     mapping_dictionary = precompute_variable_indices()
     feature_channel = mapping_dictionary[args.variable_to_plot][0]
 
-    target_all = xr.open_zarr(
-        args.path_target_file,
-        consolidated=True,
-    )[args.variable_to_plot]
-
     # Load inference dataset
     predictions_data_module = WeatherDataModule(
         "cosmo_old",
@@ -79,15 +75,34 @@ def offline_plotting():
         predictions = predictions_batch[0]
         break
 
-    # Unrotate lat and lon coordinates
-    lon, lat = unrotate_latlon(target_all)
+    # Space on memory
+    del predictions_data_module, predictions_loader
+    gc.collect()
+
+    # Output the prediction time range
+    start_time_str = constants.EVAL_DATETIMES[0]  # This should be '2015112800'
+    start_time = pd.to_datetime(start_time_str, format="%Y%m%d%H")
+
+    # Output the prediction time range
+    time_range = len(predictions[1, :, 1, 1])  # Number of time steps
+
+    # Calculate end time by adding the total duration of the time steps
+    end_time = start_time + pd.Timedelta(hours=2 * time_range)
+
+    # Open target_all and select only the specific time range
+    target_all = xr.open_zarr(
+        args.path_target_file,
+        consolidated=True,
+    )[
+        args.variable_to_plot
+    ].sel(time=slice(start_time, end_time))
 
     vmin = target_all.min().values
     vmax = target_all.max().values
 
     for i in range(22):
 
-        target = target_all.isel(time=i).transpose("x_1", "y_1")
+        target = target_all.isel(time=i).transpose("x", "y")
         # Convert target data to NumPy array
         target_tensor = torch.tensor(target.values)
         target_array = target_tensor.reshape(*constants.GRID_SHAPE[::-1])
@@ -112,13 +127,17 @@ def offline_plotting():
         # Titles for each subplot
         titles = ["Ground Truth", "Prediction"]
 
+        # Transpose lon and lat to match the reshaped data
+        lon_transposed = target_all.lon.values.T
+        lat_transposed = target_all.lat.values.T
+
         # Plot each dataset
         for index, (ax, data) in enumerate(
             zip(axes, (target_feature_array, prediction_array))
         ):
             contour_set = ax.contourf(
-                lon,
-                lat,
+                lon_transposed,
+                lat_transposed,
                 data,
                 transform=constants.SELECTED_PROJ,
                 cmap="plasma",
