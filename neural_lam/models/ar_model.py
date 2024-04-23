@@ -138,8 +138,12 @@ class ARModel(pl.LightningModule):
         self.metrics_initialized = True  # Make sure this is done only once
 
     def configure_optimizers(self):
+        # loss is added over all input channels, need to divide by d_feature to
+        # obtain roughly the same learning rate as for a single feature
         opt = torch.optim.AdamW(
-            self.parameters(), lr=self.lr, betas=(0.9, 0.95)
+            self.parameters(),
+            lr=self.lr / constants.GRID_STATE_DIM,
+            betas=(0.9, 0.95),
         )
         scheduler = torch.optim.lr_scheduler.StepLR(
             opt, step_size=30, gamma=0.1
@@ -326,7 +330,7 @@ class ARModel(pl.LightningModule):
             where index 0 corresponds to index 1 of init_states
         """
         init_states, target_states, batch_time = batch[:3]
-        forcing_features = batch[4] if len(batch) > 3 else None
+        forcing_features = batch[3] if len(batch) > 3 else None
 
         prediction, pred_std = self.unroll_prediction(
             init_states, forcing_features, target_states
