@@ -37,14 +37,9 @@ class ARModel(pl.LightningModule):
         # Log prediction error for these time steps forward
         self.val_step_log_errors = constants.VAL_STEP_LOG_ERRORS
         self.metrics_initialized = constants.METRICS_INITIALIZED
-
         # Some constants useful for sub-classes
         self.grid_forcing_dim = constants.GRID_FORCING_DIM
-        count_3d_fields = sum(value == 1 for value in constants.IS_3D.values())
-        count_2d_fields = sum(value != 1 for value in constants.IS_3D.values())
-        self.grid_state_dim = (
-            len(constants.VERTICAL_LEVELS) * count_3d_fields + count_2d_fields
-        )
+        self.grid_state_dim = constants.GRID_STATE_DIM
 
         # Load static features for grid/data
         static_data_dict = utils.load_static_data(args.dataset)
