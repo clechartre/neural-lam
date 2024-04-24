@@ -56,6 +56,8 @@ def offline_plotting():
     # Get args
     args = parser.parse_args()
 
+    utils.rank_zero_print("Starting offline plotting...")
+
     # # Mapping out the feature channel to its index
     mapping_dictionary = precompute_variable_indices()
     feature_channel = mapping_dictionary[args.variable_to_plot][0]
@@ -100,8 +102,9 @@ def offline_plotting():
     vmin = target_all.min().values
     vmax = target_all.max().values
 
-    for i in range(22):
-
+    for i in range(time_range):
+        if i % 10 == 0:
+            utils.rank_zero_print(f"Plotting time step {i}/{time_range}...")
         target = target_all.isel(time=i).transpose("x", "y")
         # Convert target data to NumPy array
         target_tensor = torch.tensor(target.values)
@@ -164,6 +167,8 @@ def offline_plotting():
             bbox_inches="tight",
         )
         plt.close(fig)
+
+    utils.rank_zero_print("Figures saved successfully!")
 
 
 # pylint: disable=duplicate-code
