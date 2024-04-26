@@ -31,19 +31,19 @@ def offline_plotting():
     parser.add_argument(
         "--path_target_file",
         type=str,
-        default="",
+        default="data/cosmo/templates/template.zarr",
         help="Path to the .zarr archive to verify against - target",
     )
     parser.add_argument(
         "--path_prediction_file",
         type=str,
-        default="",
+        default="data/cosmo/templates/predictions.npy",
         help="Path to the file output from the inference as .npy",
     )
     parser.add_argument(
         "--saving_path",
         type=str,
-        default="",
+        default="data/results",
         help="Path to save the graphical output of this function",
     )
     parser.add_argument(

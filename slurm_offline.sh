@@ -13,7 +13,7 @@ conda activate neural-lam
 ulimit -c 0
 export OMP_NUM_THREADS=16
 
-srun -ul python offline.py --path_target_file "/users/sadamov/pyprojects/neural-lam/data/cosmo/templates/template.zarr" \
-    --path_prediction_file "/users/clechart/clechart/neural-lam/wandb/run-20240411_140635-cux0r96n/files/results/inference/prediction_0.npy" \
-    --saving_path "/users/clechart/clechart/neural-lam/figures" \
+srun -ul python offline.py --path_target_file "data/cosmo/templates/template.zarr" \
+    --path_prediction_file "data/cosmo/templates/predictions.npy" \
+    --saving_path "data/results" \
     --variable_to_plot "T_2M"
