@@ -14,7 +14,6 @@ import xarray as xr
 
 # First-party
 from neural_lam import constants, utils
-from neural_lam.rotate_grid import unrotate_latlon
 from neural_lam.weather_dataset import WeatherDataModule
 
 
@@ -79,15 +78,14 @@ def offline_plotting():
         predictions = predictions_batch[0]
         break
 
-    # Unrotate lat and lon coordinates
-    lon, lat = unrotate_latlon(target_all)
+    lon, lat = target_all.lon.values.T, target_all.lat.values.T
 
     vmin = target_all.min().values
     vmax = target_all.max().values
 
     for i in range(22):
 
-        target = target_all.isel(time=i).transpose("x_1", "y_1")
+        target = target_all.isel(time=i).transpose("x", "y")
         # Convert target data to NumPy array
         target_tensor = torch.tensor(target.values)
         target_array = target_tensor.reshape(*constants.GRID_SHAPE[::-1])
