@@ -14,7 +14,6 @@ import xarray as xr
 
 # First-party
 from neural_lam import constants, utils
-from neural_lam.rotate_grid import unrotate_latlon
 from neural_lam.weather_dataset import WeatherDataModule
 
 
@@ -30,13 +29,13 @@ def offline_plotting():
     parser.add_argument(
         "--path_target_file",
         type=str,
-        default="",
+        default="/users/clechart/neural-lam/data/cosmo/samples/predict/data.zarr",
         help="Path to the .zarr archive to verify against - target",
     )
     parser.add_argument(
         "--path_prediction_file",
         type=str,
-        default="",
+        default="/users/clechart/neural-lam/templates/predictions.npy",
         help="Path to the file output from the inference as .npy",
     )
     parser.add_argument(
@@ -48,7 +47,13 @@ def offline_plotting():
     parser.add_argument(
         "--variable_to_plot",
         type=str,
-        default="TQV",
+        default="QV",
+        help="Variable to plot in short format",
+    )
+    parser.add_argument(
+        "--level_to_plot",
+        type=int,
+        default=1,
         help="Variable to plot in short format",
     )
 
@@ -59,16 +64,10 @@ def offline_plotting():
     mapping_dictionary = precompute_variable_indices()
     feature_channel = mapping_dictionary[args.variable_to_plot][0]
 
-    target_all = xr.open_zarr(
-        args.path_target_file,
-        consolidated=True,
-    )[args.variable_to_plot]
-
     # Load inference dataset
     predictions_data_module = WeatherDataModule(
-        "cosmo_old",
+        "cosmo",
         path_verif_file=args.path_prediction_file,
-        split="verif",
         standardize=False,
         subset=False,
         batch_size=6,
@@ -79,19 +78,28 @@ def offline_plotting():
     for predictions_batch in predictions_loader:
         predictions = predictions_batch[0]
         break
+    time_range = len(predictions)
+
+    # Load target dataset
+    target_all = xr.open_zarr(
+        args.path_target_file,
+        consolidated=True,
+    )[args.variable_to_plot].isel(time=slice(0, time_range))
 
     # Unrotate lat and lon coordinates
-    lon, lat = unrotate_latlon(target_all)
-
+    lon = target_all.lon.values
+    lat = target_all.lat.values
     vmin = target_all.min().values
     vmax = target_all.max().values
 
-    for i in range(22):
+    # We need to only select for a level? 
+    for i in range(time_range):
 
-        target = target_all.isel(time=i).transpose("x_1", "y_1")
+        target = target_all.isel(time=i).transpose("y", "x", ...)
         # Convert target data to NumPy array
         target_tensor = torch.tensor(target.values)
-        target_array = target_tensor.reshape(*constants.GRID_SHAPE[::-1])
+        target_array = target_tensor.reshape(390,582, max(constants.VERTICAL_LEVELS))
+        # Need to then choose the level - so slice a specific part to get a 2D
         target_feature_array = np.array(target_array)
 
         # Convert predictions to NumPy array
