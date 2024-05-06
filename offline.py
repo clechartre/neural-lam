@@ -49,7 +49,7 @@ def offline_plotting():
     parser.add_argument(
         "--variable_to_plot",
         type=str,
-        default="TQV",
+        default="T_2M",
         help="Variable to plot in short format",
     )
 
@@ -86,7 +86,7 @@ def offline_plotting():
     start_time = pd.to_datetime(start_time_str, format="%Y%m%d%H")
 
     # Output the prediction time range
-    time_range = len(predictions[1, :, 1, 1])  # Number of time steps
+    time_range = len(predictions[0, :, 0, 0])  # Number of time steps
 
     # Calculate end time by adding the total duration of the time steps
     end_time = start_time + pd.Timedelta(hours=2 * time_range)
