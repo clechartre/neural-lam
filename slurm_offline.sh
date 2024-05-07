@@ -15,5 +15,5 @@ export OMP_NUM_THREADS=16
 
 srun -ul python offline.py --path_target_file "/users/clechart/neural-lam/data/cosmo/samples/predict/data.zarr" \
     --path_prediction_file "/users/clechart/neural-lam/templates/predictions.npy" \
-    --saving_path "/users/clechart/clechart/neural-lam/figures" \
+    --saving_path "/users/clechart/neural-lam/figures/" \
     --variable_to_plot "QV"

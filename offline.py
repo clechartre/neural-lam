@@ -3,6 +3,7 @@
 # Standard library
 import os
 from argparse import ArgumentParser
+from datetime import datetime, timedelta
 
 # Third-party
 import cartopy.feature as cf
@@ -29,19 +30,19 @@ def offline_plotting():
     parser.add_argument(
         "--path_target_file",
         type=str,
-        default="/users/clechart/neural-lam/data/cosmo/samples/predict/data.zarr",
+        default="data/cosmo/samples/predict/data.zarr",
         help="Path to the .zarr archive to verify against - target",
     )
     parser.add_argument(
         "--path_prediction_file",
         type=str,
-        default="/users/clechart/neural-lam/templates/predictions.npy",
+        default="templates/predictions.npy",
         help="Path to the file output from the inference as .npy",
     )
     parser.add_argument(
         "--saving_path",
         type=str,
-        default="/users/clechart/clechart/neural-lam/figures/",
+        default="/users/clechart/neural-lam/figures/",
         help="Path to save the graphical output of this function",
     )
     parser.add_argument(
@@ -54,7 +55,7 @@ def offline_plotting():
         "--level_to_plot",
         type=int,
         default=1,
-        help="Variable to plot in short format",
+        help="For 3D variables, which vertical level to plot?",
     )
 
     # Get args
@@ -62,7 +63,18 @@ def offline_plotting():
 
     # # Mapping out the feature channel to its index
     mapping_dictionary = precompute_variable_indices()
+    # Here we can select the level
     feature_channel = mapping_dictionary[args.variable_to_plot][0]
+    if constants.IS_3D[args.variable_to_plot]:
+        # We need to select the right level in constants.VERTICAL_LEVELS
+        try:
+            index = constants.VERTICAL_LEVELS.index(args.level_to_plot)
+        except ValueError as exc:
+            raise ValueError(
+                f"The level {args.level_to_plot} is not valid."
+                f"Choose from {constants.VERTICAL_LEVELS}"
+            ) from exc
+        feature_channel = mapping_dictionary[args.variable_to_plot][index]
 
     # Load inference dataset
     predictions_data_module = WeatherDataModule(
@@ -78,34 +90,42 @@ def offline_plotting():
     for predictions_batch in predictions_loader:
         predictions = predictions_batch[0]
         break
-    time_range = len(predictions)
+    time_steps = generate_time_steps()
 
-    # Load target dataset
+    # Load target dataset, only select the relevant time range
     target_all = xr.open_zarr(
         args.path_target_file,
         consolidated=True,
-    )[args.variable_to_plot].isel(time=slice(0, time_range))
+    )[
+        args.variable_to_plot
+    ].isel(time=slice(0, len(time_steps)))
 
-    # Unrotate lat and lon coordinates
+    # Get Lon and Lat coordinates
     lon = target_all.lon.values
     lat = target_all.lat.values
     vmin = target_all.min().values
     vmax = target_all.max().values
 
-    # We need to only select for a level? 
-    for i in range(time_range):
+    # We need to only select for a level?
+    for i, time_step in time_steps.items():
 
-        target = target_all.isel(time=i).transpose("y", "x", ...)
-        # Convert target data to NumPy array
+        # Select the time step
+        target = target_all.isel(time=i)
+        # Convert target data to NumPy array and select right level here
+        if constants.IS_3D[args.variable_to_plot]:
+            target = target[feature_channel]
+
         target_tensor = torch.tensor(target.values)
-        target_array = target_tensor.reshape(390,582, max(constants.VERTICAL_LEVELS))
-        # Need to then choose the level - so slice a specific part to get a 2D
+        target_array = target_tensor.reshape(
+            constants.GRID_SHAPE[0], constants.GRID_SHAPE[1]
+        )
         target_feature_array = np.array(target_array)
 
         # Convert predictions to NumPy array
         prediction_array = (
             predictions[0, i, :, feature_channel]
             .reshape(*constants.GRID_SHAPE[::-1])
+            .moveaxis([-2, -1], [-1, -2])
             .cpu()
             .numpy()
         )
@@ -149,11 +169,20 @@ def offline_plotting():
         # Add colorbar and titles
         cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
         cbar.ax.tick_params(labelsize=10)
+
+        # Save plot
+        directory = os.path.dirname(args.saving_path)
+        plot = (
+            f"{args.saving_path}feature_channel_"
+            f"{feature_channel}_{time_step}.png"
+        )
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         plt.savefig(
-            os.path.join(args.saving_path, f"plot_offline_{i}.png"),
+            plot,
             bbox_inches="tight",
         )
-        plt.close(fig)
+        plt.close()
 
 
 def precompute_variable_indices():
@@ -183,6 +212,23 @@ def precompute_variable_indices():
         index += 1
 
     return variable_indices
+
+
+def generate_time_steps():
+    """Generate a list with all time steps in inference."""
+    # Parse the times
+    base_time = constants.EVAL_DATETIMES[0]
+    if isinstance(base_time, str):
+        base_time = datetime.strptime(base_time, "%Y%m%d%H")
+    time_steps = {}
+    # Generate dates for each step
+    for i in range(constants.EVAL_HORIZON - 2):
+        # Compute the new date by adding the step interval in hours - 3
+        new_date = base_time + timedelta(hours=i * constants.TRAIN_HORIZON)
+        # Format the date back
+        time_steps[i] = new_date.strftime("%Y%m%d%H")
+
+    return time_steps
 
 
 # Entry point for script
