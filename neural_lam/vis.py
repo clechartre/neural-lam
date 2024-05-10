@@ -1,11 +1,13 @@
 # Standard library
 import os
+from typing import Optional, Tuple
 
 # Third-party
 import cartopy.feature as cf
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 import xarray as xr
 from tqdm import tqdm
 
@@ -84,17 +86,9 @@ def plot_prediction(pred, target, title=None, vrange=None):
     Each has shape (N_grid,)
     """
     # Get common scale for values
-    if vrange is None:
-        vmin = min(vals.min().cpu().item() for vals in (pred, target))
-        vmax = max(vals.max().cpu().item() for vals in (pred, target))
-    else:
-        vmin, vmax = vrange[0].cpu().item(), vrange[1].cpu().item()
-
-    # get test data
-    data_latlon = xr.open_zarr(constants.EXAMPLE_FILE, consolidated=True).isel(
-        time=0
-    )
-    lon, lat = data_latlon.lon.values.T, data_latlon.lat.values.T
+    lon, lat, vmin, vmax = set_plot_dimensions(
+        1, vrange
+    )  # TODO replace 1 with actual feature_channel
 
     fig, axes = plt.subplots(
         2,
@@ -186,52 +180,27 @@ def plot_spatial_error(error, title=None, vrange=None):
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def verify_inference(
-    file_path: str, save_path: str, feature_channel: int, vrange=None
-):
+def verify_inference(file_path: str, save_path: str, feature_channel: int):
     """
     Plot example prediction, verification, and ground truth.
     Each has shape (N_grid,)
     """
+    predictions = load_verification_data(file_path)
 
-    # Load the inference dataset for plotting
-    predictions_data_module = WeatherDataModule(
-        "cosmo",
-        path_verif_file=file_path,
-        standardize=False,
-        subset=0,
-        batch_size=6,
-        num_workers=2,
-    )
-    predictions_data_module.setup(stage="verif")
-    predictions_loader = predictions_data_module.verif_dataloader()
-    for predictions_batch in predictions_loader:
-        predictions = predictions_batch[0]  # tensor
-        break
-
-    # Verify that feature channel is within bounds
     if not 0 <= feature_channel < predictions.shape[-1]:
         raise ValueError(
             f"feature_channel must be between 0 and "
             f"{predictions.shape[-1] - 1}, inclusive."
         )
 
-    # get test data
-    data_latlon = xr.open_zarr(constants.EXAMPLE_FILE).isel(time=0)
-    lon, lat = data_latlon.lon.values.T, data_latlon.lat.values.T
+    # Prepare the plotting environment
+    fig, axes = plt.subplots(
+        1,
+        1,
+        figsize=constants.FIG_SIZE,
+        subplot_kw={"projection": constants.SELECTED_PROJ},
+    )
 
-    # Get common scale for values
-    total = predictions[0, :, :, feature_channel]
-    total_array = np.array(total)
-    if vrange is None:
-        vmin = total_array.min()
-        vmax = total_array.max()
-    else:
-        vmin, vmax = float(vrange[0].cpu().item()), float(
-            vrange[1].cpu().item()
-        )
-
-    # Plot
     for i in tqdm(
         range(constants.EVAL_HORIZON - 2), desc="Plotting predictions"
     ):
@@ -241,52 +210,155 @@ def verify_inference(
             .cpu()
             .numpy()
         )
-        data_array = np.array(feature_array)
-
-        fig, axes = plt.subplots(
-            1,
-            1,
-            figsize=constants.FIG_SIZE,
-            subplot_kw={"projection": constants.SELECTED_PROJ},
+        title = (
+            "Predictions from model inference: "
+            f"Feature channel {feature_channel}, time step {i}"
+        )
+        contour_set = create_geographic_plot(
+            feature_array, feature_channel, title, axes
         )
 
-        contour_set = axes.contourf(
-            lon,
-            lat,
-            data_array,
-            transform=constants.SELECTED_PROJ,
-            cmap="plasma",
-            levels=np.linspace(vmin, vmax, num=100),
-        )
-        axes.add_feature(cf.BORDERS, linestyle="-", edgecolor="black")
-        axes.add_feature(cf.COASTLINE, linestyle="-", edgecolor="black")
-        axes.gridlines(
-            crs=constants.SELECTED_PROJ,
-            draw_labels=False,
-            linewidth=0.5,
-            alpha=0.5,
+    # Add colorbar to the figure
+    cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=40)
+    cbar.ax.tick_params(labelsize=10)
+
+    # Save the plot
+    directory = os.path.dirname(save_path)
+    plot_filename = f"{save_path}verification_plot.png"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    plt.savefig(plot_filename, bbox_inches="tight")
+    plt.close(fig)
+
+
+# Load the inference dataset for plotting
+def load_verification_data(file_path: str) -> torch.Tensor:
+    """Load data in memory as a WeatherDataModule.
+
+    Args:
+        file_path (str): path to file containing data
+
+    Returns:
+        torch.Tensor: A tensor containing the predictions of the first batch.
+    """
+    predictions_data_module = WeatherDataModule(
+        "cosmo",
+        path_verif_file=file_path,
+        standardize=False,
+        subset=False,
+        batch_size=6,
+        num_workers=2,
+    )
+    predictions_data_module.setup(stage="verif")
+    predictions_loader = predictions_data_module.verif_dataloader()
+    for predictions_batch in predictions_loader:
+        predictions = predictions_batch[0]  # tensor
+        break
+    return predictions
+
+
+def set_plot_dimensions(
+    feature_channel: int,
+    vrange: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
+) -> Tuple[np.ndarray, np.ndarray, float, float]:
+    """_summary_
+
+    Args:
+        feature_channel (int):the level corresponding to the
+        variable and vertical level of interest
+          in the prediction array
+        vrange (Tuple[torch.Tensor, torch.Tensor], optional): A tuple containing
+          minimum and maximum values as tensors. Defaults to None.
+
+    Returns:
+         Tuple[np.ndarray, np.ndarray, float, float]: A tuple 
+         containing two numpy arrays
+         for longitude and latitude, and two
+         floats for minimum and maximum values.
+    """
+    # get test data
+    data_latlon = xr.open_zarr(constants.EXAMPLE_FILE).isel(time=0)
+    lon, lat = data_latlon.lon.values.T, data_latlon.lat.values.T
+
+    mapping_dictionary = precompute_variable_indices()
+    keys_with_feature_channel = [
+        key
+        for key, values in mapping_dictionary.items()
+        if feature_channel in values
+    ]
+
+    if vrange is None:
+        vmin = data_latlon[keys_with_feature_channel[0]].min().values.item()
+        vmax = data_latlon[keys_with_feature_channel[0]].max().values.item()
+    else:
+        # Convert tensor to float, assuming vrange is already properly formatted
+        vmin, vmax = float(vrange[0].cpu().item()), float(
+            vrange[1].cpu().item()
         )
 
-        # Ticks and labels
-        axes.set_title("Predictions from model inference", size=15)
-        axes.text(
-            0.5,
-            1.05,
-            f"Feature channel {feature_channel}, time step {i}",
-            ha="center",
-            va="bottom",
-            transform=axes.transAxes,
-            fontsize=12,
-        )
-        cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
-        cbar.ax.tick_params(labelsize=10)
+    return lon, lat, vmin, vmax
 
-        # Save the plot!
-        directory = os.path.dirname(save_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        plt.savefig(
-            f"{save_path}feature_channel_{feature_channel}_{i}.png",
-            bbox_inches="tight",
-        )
-        plt.close()
+
+def create_geographic_plot(data_array, feature_channel, title, ax):
+    """
+    Create a geographic plot with contour fill, coastlines,
+      borders, and gridlines, and return the axes.
+
+    Parameters:
+        data_array (array): The data values to contour.
+        feature_channel (int): The index of the feature channel being plotted.
+        i (int): The index of the time step being plotted.
+        title (str): Title for the plot.
+        ax (matplotlib.axes): Axes object to plot on.
+    """
+    lon, lat, vmin, vmax = set_plot_dimensions(feature_channel, vrange=None)
+
+    contour_set = ax.contourf(
+        lon,
+        lat,
+        data_array,
+        transform=constants.SELECTED_PROJ,
+        cmap="plasma",
+        levels=np.linspace(vmin, vmax, num=100),
+    )
+    ax.add_feature(cf.BORDERS, linestyle="-", edgecolor="black")
+    ax.add_feature(cf.COASTLINE, linestyle="-", edgecolor="black")
+    ax.gridlines(
+        crs=constants.SELECTED_PROJ, draw_labels=False, linewidth=0.5, alpha=0.5
+    )
+    ax.set_title(title, size=15)
+
+    return contour_set
+
+
+def precompute_variable_indices() -> dict:
+    """
+    Precompute indices for each variable in the input tensor.
+
+    Returns:
+        variable_indices (dict): a dictionary with the variables and
+        their associated indices in the prediction array.
+    """
+    variable_indices = {}
+    all_vars = []
+    index = 0
+    # Create a list of tuples for all variables, using level 0 for 2D
+    # variables
+    for var_name in constants.PARAM_NAMES_SHORT:
+        if constants.IS_3D[var_name]:
+            for level in constants.VERTICAL_LEVELS:
+                all_vars.append((var_name, level))
+        else:
+            all_vars.append((var_name, 0))  # Use level 0 for 2D variables
+
+    # Sort the variables based on the tuples
+    sorted_vars = sorted(all_vars)
+
+    for var in sorted_vars:
+        var_name, level = var
+        if var_name not in variable_indices:
+            variable_indices[var_name] = []
+        variable_indices[var_name].append(index)
+        index += 1
+
+    return variable_indices
