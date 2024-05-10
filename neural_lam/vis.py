@@ -6,6 +6,7 @@ import cartopy.feature as cf
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 import xarray as xr
 from tqdm import tqdm
 
@@ -104,28 +105,15 @@ def plot_prediction(pred, target, title=None, vrange=None):
     )
 
     # Plot pred and target
-    for ax, data in zip(axes, (target, pred)):
+    for ax, data, plot_title in zip(
+        axes, (target, pred), ["Ground Truth", "Prediction"]
+    ):
         data_grid = data.reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
-        contour_set = ax.contourf(
-            lon,
-            lat,
-            data_grid,
-            transform=constants.SELECTED_PROJ,
-            cmap="plasma",
-            levels=np.linspace(vmin, vmax, num=100),
+        contour_set = create_geographic_plot(
+            lon, lat, vmin, vmax, data_grid, plot_title, ax
         )
-        ax.add_feature(cf.BORDERS, linestyle="-", edgecolor="black")
-        ax.add_feature(cf.COASTLINE, linestyle="-", edgecolor="black")
-        ax.gridlines(
-            crs=constants.SELECTED_PROJ,
-            draw_labels=False,
-            linewidth=0.5,
-            alpha=0.5,
-        )
+        ax.set_title(plot_title, size=15)
 
-    # Ticks and labels
-    axes[0].set_title("Ground Truth", size=15)
-    axes[1].set_title("Prediction", size=15)
     cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
     cbar.ax.tick_params(labelsize=10)
 
@@ -194,20 +182,7 @@ def verify_inference(
     Each has shape (N_grid,)
     """
 
-    # Load the inference dataset for plotting
-    predictions_data_module = WeatherDataModule(
-        "cosmo",
-        path_verif_file=file_path,
-        standardize=False,
-        subset=0,
-        batch_size=6,
-        num_workers=2,
-    )
-    predictions_data_module.setup(stage="verif")
-    predictions_loader = predictions_data_module.verif_dataloader()
-    for predictions_batch in predictions_loader:
-        predictions = predictions_batch[0]  # tensor
-        break
+    predictions = load_verification_data(file_path)
 
     # Verify that feature channel is within bounds
     if not 0 <= feature_channel < predictions.shape[-1]:
@@ -232,6 +207,13 @@ def verify_inference(
         )
 
     # Plot
+    fig, axes = plt.subplots(
+        1,
+        1,
+        figsize=constants.FIG_SIZE,
+        subplot_kw={"projection": constants.SELECTED_PROJ},
+    )
+
     for i in tqdm(
         range(constants.EVAL_HORIZON - 2), desc="Plotting predictions"
     ):
@@ -241,43 +223,14 @@ def verify_inference(
             .cpu()
             .numpy()
         )
-        data_array = np.array(feature_array)
-
-        fig, axes = plt.subplots(
-            1,
-            1,
-            figsize=constants.FIG_SIZE,
-            subplot_kw={"projection": constants.SELECTED_PROJ},
+        title = (
+            "Predictions from model inference: "
+            f"Feature channel {feature_channel}, time step {i}"
+        )
+        contour_set = create_geographic_plot(
+            lon, lat, vmin, vmax, feature_array, title, axes
         )
 
-        contour_set = axes.contourf(
-            lon,
-            lat,
-            data_array,
-            transform=constants.SELECTED_PROJ,
-            cmap="plasma",
-            levels=np.linspace(vmin, vmax, num=100),
-        )
-        axes.add_feature(cf.BORDERS, linestyle="-", edgecolor="black")
-        axes.add_feature(cf.COASTLINE, linestyle="-", edgecolor="black")
-        axes.gridlines(
-            crs=constants.SELECTED_PROJ,
-            draw_labels=False,
-            linewidth=0.5,
-            alpha=0.5,
-        )
-
-        # Ticks and labels
-        axes.set_title("Predictions from model inference", size=15)
-        axes.text(
-            0.5,
-            1.05,
-            f"Feature channel {feature_channel}, time step {i}",
-            ha="center",
-            va="bottom",
-            transform=axes.transAxes,
-            fontsize=12,
-        )
         cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
         cbar.ax.tick_params(labelsize=10)
 
@@ -290,3 +243,62 @@ def verify_inference(
             bbox_inches="tight",
         )
         plt.close()
+
+
+# Load the inference dataset for plotting
+def load_verification_data(file_path: str) -> torch.Tensor:
+    """Load data in memory as a WeatherDataModule.
+
+    Args:
+        file_path (str): path to file containing data
+
+    Returns:
+        torch.Tensor: A tensor containing the predictions of the first batch.
+    """
+    predictions_data_module = WeatherDataModule(
+        "cosmo",
+        path_verif_file=file_path,
+        standardize=False,
+        subset=False,
+        batch_size=6,
+        num_workers=2,
+    )
+    predictions_data_module.setup(stage="verif")
+    predictions_loader = predictions_data_module.verif_dataloader()
+    for predictions_batch in predictions_loader:
+        predictions = predictions_batch[0]  # tensor
+        break
+    return predictions
+
+
+def create_geographic_plot(lon, lat, vmin, vmax, data_array, title, ax):
+    """
+    Create a geographic plot with contour fill, coastlines,
+      borders, and gridlines, and return the axes.
+
+    Parameters:
+        lon: longitude data
+        lat: latitude data
+        vmin: lower bound of value range
+        vmax: higher bound of value range
+        data_array (array): The data values to contour.
+        title (str): Title for the plot.
+        ax (matplotlib.axes): Axes object to plot on.
+    """
+
+    contour_set = ax.contourf(
+        lon,
+        lat,
+        data_array,
+        transform=constants.SELECTED_PROJ,
+        cmap="plasma",
+        levels=np.linspace(vmin, vmax, num=100),
+    )
+    ax.add_feature(cf.BORDERS, linestyle="-", edgecolor="black")
+    ax.add_feature(cf.COASTLINE, linestyle="-", edgecolor="black")
+    ax.gridlines(
+        crs=constants.SELECTED_PROJ, draw_labels=False, linewidth=0.5, alpha=0.5
+    )
+    ax.set_title(title, size=15)
+
+    return contour_set

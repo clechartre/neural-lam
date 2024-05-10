@@ -6,16 +6,14 @@ from argparse import ArgumentParser
 from datetime import datetime, timedelta
 
 # Third-party
-import cartopy.feature as cf
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import xarray as xr
 
 # First-party
 from neural_lam import constants, utils
-from neural_lam.weather_dataset import WeatherDataModule
+from neural_lam.vis import create_geographic_plot, load_verification_data
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
@@ -77,19 +75,7 @@ def offline_plotting():
         feature_channel = mapping_dictionary[args.variable_to_plot][index]
 
     # Load inference dataset
-    predictions_data_module = WeatherDataModule(
-        "cosmo",
-        path_verif_file=args.path_prediction_file,
-        standardize=False,
-        subset=False,
-        batch_size=6,
-        num_workers=2,
-    )
-    predictions_data_module.setup(stage="verif")
-    predictions_loader = predictions_data_module.verif_dataloader()
-    for predictions_batch in predictions_loader:
-        predictions = predictions_batch[0]
-        break
+    predictions = load_verification_data(args.path_prediction_file)
     time_steps = generate_time_steps()
 
     # Load target dataset, only select the relevant time range
@@ -119,7 +105,6 @@ def offline_plotting():
         target_array = target_tensor.reshape(
             constants.GRID_SHAPE[0], constants.GRID_SHAPE[1]
         )
-        target_feature_array = np.array(target_array)
 
         # Convert predictions to NumPy array
         prediction_array = (
@@ -138,33 +123,24 @@ def offline_plotting():
             subplot_kw={"projection": constants.SELECTED_PROJ},
         )
 
-        # Titles for each subplot
-        titles = ["Ground Truth", "Prediction"]
-
-        # Plot each dataset
-        for index, (ax, data) in enumerate(
-            zip(axes, (target_feature_array, prediction_array))
-        ):
-            contour_set = ax.contourf(
-                lon,
-                lat,
-                data,
-                transform=constants.SELECTED_PROJ,
-                cmap="plasma",
-                levels=np.linspace(vmin, vmax, num=100),
-            )
-            ax.add_feature(cf.BORDERS, linestyle="-", edgecolor="black")
-            ax.add_feature(cf.COASTLINE, linestyle="-", edgecolor="black")
-            ax.gridlines(
-                crs=constants.SELECTED_PROJ,
-                draw_labels=False,
-                linewidth=0.5,
-                alpha=0.5,
-            )
-            # Set specific title for each subplot
-            ax.set_title(
-                f"{titles[index]}: {args.variable_to_plot} at time step {i}"
-            )
+        create_geographic_plot(
+            lon,
+            lat,
+            vmin,
+            vmax,
+            target_array,
+            "Ground Truth",
+            axes[0],
+        )
+        contour_set = create_geographic_plot(
+            lon,
+            lat,
+            vmin,
+            vmax,
+            prediction_array,
+            "Prediction",
+            axes[1],
+        )
 
         # Add colorbar and titles
         cbar = fig.colorbar(contour_set, orientation="horizontal", aspect=20)
