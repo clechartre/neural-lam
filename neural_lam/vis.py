@@ -1,6 +1,9 @@
 # Standard library
+
+# Standard library
 import os
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 # Third-party
 import cartopy.feature as cf
@@ -14,6 +17,39 @@ from tqdm import tqdm
 # First-party
 from neural_lam import constants, utils
 from neural_lam.weather_dataset import WeatherDataModule
+
+
+@dataclass
+class Variable:
+    """Variables and different channels in batch.
+    """
+    short_name: str
+    channels: List[int]
+
+
+@dataclass
+class VariableCollection:
+    """Variables and their associated channels in batch.
+    """
+    def __init__(self) -> None:
+        self.all_products: List[Variable] = []
+
+    def add_product(self, variable: Variable):
+        if variable.short_name in self.all_products:
+            raise ValueError(f"Variable {variable.short_name} already exists.")
+        self.all_products.append(variable)
+
+    def get_variable_from_shortname(self, short_name: str) -> Variable:
+        for product in self.all_products:
+            if product.short_name == short_name:
+                return product
+        raise KeyError("Variable not found")
+
+    def get_variable_from_channel(self, channel: int) -> Variable:
+        for variable in self.all_products.values():
+            if channel in variable.channels:
+                return variable
+        raise KeyError(f"No variable found with channel {channel}")
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
@@ -86,9 +122,24 @@ def plot_prediction(pred, target, title=None, vrange=None):
     Each has shape (N_grid,)
     """
     # Get common scale for values
-    lon, lat, vmin, vmax = set_plot_dimensions(
-        1, vrange
-    )  # TODO replace 1 with actual feature_channel
+    mapping_dictionary = precompute_variable_indices()
+    all_vars = VariableCollection()
+    for var_name, channels in mapping_dictionary.items():
+        all_vars.add_product(Variable(var_name, channels))
+
+    try:
+        variable = all_vars.get_variable_from_shortname(
+            constants.EVAL_PLOT_VARS[0]
+        )
+        feature_channel = variable.channels[
+            0
+        ]  # Assuming we use the first channel
+    except KeyError:
+        raise ValueError(
+            f"No variable found for name {constants.EVAL_PLOT_VARS[0]}"
+        )
+
+    lon, lat, vmin, vmax = set_plot_dimensions(feature_channel, vrange)
 
     fig, axes = plt.subplots(
         2,
@@ -271,7 +322,7 @@ def set_plot_dimensions(
           minimum and maximum values as tensors. Defaults to None.
 
     Returns:
-         Tuple[np.ndarray, np.ndarray, float, float]: A tuple 
+         Tuple[np.ndarray, np.ndarray, float, float]: A tuple
          containing two numpy arrays
          for longitude and latitude, and two
          floats for minimum and maximum values.
@@ -337,7 +388,7 @@ def precompute_variable_indices() -> dict:
 
     Returns:
         variable_indices (dict): a dictionary with the variables and
-        their associated indices in the prediction array.
+        their associated indices
     """
     variable_indices = {}
     all_vars = []

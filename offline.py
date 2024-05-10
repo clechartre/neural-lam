@@ -4,7 +4,6 @@
 import os
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
-
 # Third-party
 import matplotlib
 import matplotlib.pyplot as plt
@@ -14,6 +13,8 @@ import xarray as xr
 # First-party
 from neural_lam import constants, utils
 from neural_lam.vis import (
+    Variable,
+    VariableCollection,
     create_geographic_plot,
     load_verification_data,
     precompute_variable_indices,
@@ -22,13 +23,9 @@ from neural_lam.vis import (
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
 def offline_plotting():
-    """
-    Generate comparison plot between prediction array and ground truth.
-    """
     parser = ArgumentParser(
         description="Standalone offline plotting of zarr and npy files"
     )
-    # Command-line options
     parser.add_argument(
         "--path_target_file",
         type=str,
@@ -59,14 +56,25 @@ def offline_plotting():
         default=1,
         help="For 3D variables, which vertical level to plot?",
     )
-
     args = parser.parse_args()
 
     mapping_dictionary = precompute_variable_indices()
-    feature_channel = mapping_dictionary[args.variable_to_plot][0]
-    if constants.IS_3D[args.variable_to_plot]:
+    all_vars = VariableCollection()
+    # Populate all_vars with each variable from mapping_dictionary
+    for variable, channels in mapping_dictionary.items():
+        all_vars.add_product(Variable(variable, channels))
+
+    # Retrieve the variable instance from all_vars
+    variable_instance = all_vars.get_variable_from_shortname(
+        args.variable_to_plot
+    )
+    feature_channel = variable_instance.channels[0]  # Default to first channel
+    if (
+        constants.IS_3D[args.variable_to_plot]
+        and args.level_to_plot in constants.VERTICAL_LEVELS
+    ):
         index = constants.VERTICAL_LEVELS.index(args.level_to_plot)
-        feature_channel = mapping_dictionary[args.variable_to_plot][index]
+        feature_channel = variable_instance.channels[index]
 
     predictions = load_verification_data(args.path_prediction_file)
     time_steps = generate_time_steps()
@@ -75,22 +83,13 @@ def offline_plotting():
         args.variable_to_plot
     ].isel(time=slice(0, len(time_steps)))
 
-    # Create the figure outside the loop
-    fig, axes = plt.subplots(
-        2,
-        1,
-        figsize=constants.FIG_SIZE,
-        subplot_kw={"projection": constants.SELECTED_PROJ},
-    )
 
     for i, _ in time_steps.items():
         target = target_all.isel(time=i)
         if constants.IS_3D[args.variable_to_plot]:
-            target = target[feature_channel]
+            target = target.isel(level=args.level_to_plot)
 
-        # Reshape the data to fit the plots
         target_array = np.moveaxis(target.values, [-2, -1], [-1, -2])
-
         prediction_array = (
             predictions[0, i, :, feature_channel]
             .reshape(*constants.GRID_SHAPE[::-1])
@@ -98,7 +97,13 @@ def offline_plotting():
             .numpy()
         )
 
-        # Plot both on the same axes array
+        fig, axes = plt.subplots(
+            2,
+            1,
+            figsize=constants.FIG_SIZE,
+            subplot_kw={"projection": constants.SELECTED_PROJ},
+        )
+
         create_geographic_plot(
             target_array, feature_channel, "Ground Truth", axes[0]
         )
@@ -106,7 +111,6 @@ def offline_plotting():
             prediction_array, feature_channel, "Prediction", axes[1]
         )
 
-    # Add colorbar and save the figure
     cbar = fig.colorbar(
         contour_set,
         ax=axes.ravel().tolist(),
@@ -114,8 +118,6 @@ def offline_plotting():
         aspect=40,
     )
     cbar.ax.tick_params(labelsize=10)
-
-    # Save plot
     directory = os.path.dirname(args.saving_path)
     plot = f"{args.saving_path}comparison_plot.png"
     if not os.path.exists(directory):
