@@ -79,10 +79,8 @@ def offline_plotting():
     time_steps = generate_time_steps()
 
     # Load target dataset, only select the relevant time range
-    target_all = xr.open_zarr(
-        args.path_target_file,
-        consolidated=True,
-    )[
+    # variable, and level
+    target_all = xr.open_zarr(args.path_target_file, consolidated=True)[
         args.variable_to_plot
     ].isel(time=slice(0, len(time_steps)))
 
@@ -92,20 +90,19 @@ def offline_plotting():
     vmin = target_all.min().values
     vmax = target_all.max().values
 
-    # We need to only select for a level?
     for i, time_step in time_steps.items():
-
         # Select the time step
         target = target_all.isel(time=i)
-        # Convert target data to NumPy array and select right level here
+        
+        # Check if the variable is 3D and select the appropriate vertical level
         if constants.IS_3D[args.variable_to_plot]:
-            target = target[feature_channel]
+            # Assuming 'z' is the dimension for vertical levels
+            target = target.isel(z=args.level_to_plot)
 
+        # Convert target data to a NumPy array
         target_tensor = torch.tensor(target.values)
-        target_array = target_tensor.reshape(
-            constants.GRID_SHAPE[0], constants.GRID_SHAPE[1]
-        )
-
+        target_array = target_tensor.reshape(constants.GRID_SHAPE[0], constants.GRID_SHAPE[1])
+        
         # Convert predictions to NumPy array
         prediction_array = (
             predictions[0, i, :, feature_channel]
