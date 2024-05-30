@@ -10,7 +10,7 @@ import torch
 import xarray as xr
 
 # First-party
-from neural_lam import constants, utils
+from neural_lam import utils
 
 
 class WeatherDataset(torch.utils.data.Dataset):
@@ -185,14 +185,12 @@ class WeatherDataset(torch.utils.data.Dataset):
             for dt_obj in dt_objs
         ]
 
-        hour_angles = torch.tensor(
-            [(hour_of_day / 12) * torch.pi for hour_of_day in hours_of_day]
-        )  # (sample_len,)
-        year_angles = torch.tensor(
-            [
-                (second_into_year / constants.SECONDS_IN_YEAR) * 2 * torch.pi
-                for second_into_year in seconds_into_year
-            ]
+        # Encode as sin/cos
+        # ! Make this more flexible in a separate create_forcings.py script
+        seconds_in_year = 365 * 24 * 3600
+        hour_angle = (hour_of_day / 12) * torch.pi  # (sample_len,)
+        year_angle = (
+            (second_into_year / seconds_in_year) * 2 * torch.pi
         )  # (sample_len,)
         datetime_forcing = torch.stack(
             (

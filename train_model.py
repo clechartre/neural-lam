@@ -8,8 +8,7 @@ import torch
 from lightning_fabric.utilities import seed
 
 # First-party
-from neural_lam import utils
-from neural_lam.models.base_graph_model import BaseGraphModel
+from neural_lam import config, utils
 from neural_lam.models.graph_lam import GraphLAM
 from neural_lam.models.hi_lam import HiLAM
 from neural_lam.models.hi_lam_parallel import HiLAMParallel
@@ -31,14 +30,11 @@ def main():
     parser = ArgumentParser(
         description="Train or evaluate NeurWP models for LAM"
     )
-
-    # General options
     parser.add_argument(
-        "--dataset",
+        "--data_config",
         type=str,
-        default="meps_example",
-        help="Dataset, corresponding to name in data directory "
-        "(default: meps_example)",
+        default="neural_lam/data_config.yaml",
+        help="Path to data config file (default: neural_lam/data_config.yaml)",
     )
     parser.add_argument(
         "--model",
@@ -189,8 +185,35 @@ def main():
         help="Number of example predictions to plot during evaluation "
         "(default: 1)",
     )
-    # Get args
+
+    # Logger Settings
+    parser.add_argument(
+        "--wandb_project",
+        type=str,
+        default="neural_lam",
+        help="Wandb project name (default: neural_lam)",
+    )
+    parser.add_argument(
+        "--val_steps_to_log",
+        type=list,
+        default=[1, 2, 3, 5, 10, 15, 19],
+        help="Steps to log val loss for (default: [1, 2, 3, 5, 10, 15, 19])",
+    )
+    parser.add_argument(
+        "--metrics_watch",
+        type=list,
+        default=[],
+        help="List of metrics to watch, including any prefix (e.g. val_rmse)",
+    )
+    parser.add_argument(
+        "--var_leads_metrics_watch",
+        type=dict,
+        default={},
+        help="Dict with variables and lead times to log watched metrics for",
+    )
     args = parser.parse_args()
+
+    config_loader = config.Config.from_file(args.data_config)
 
     # Asserts for arguments
     assert args.model in MODELS, f"Unknown model: {args.model}"
@@ -204,11 +227,33 @@ def main():
 
     # Set seed
     seed.seed_everything(args.seed)
-    # Create datamodule
-    data_module = WeatherDataModule(
-        args.dataset,
-        subset=args.subset_ds,
-        batch_size=args.batch_size,
+
+    # Load data
+    train_loader = torch.utils.data.DataLoader(
+        WeatherDataset(
+            config_loader.dataset.name,
+            pred_length=args.ar_steps,
+            split="train",
+            subsample_step=args.step_length,
+            subset=bool(args.subset_ds),
+            control_only=args.control_only,
+        ),
+        args.batch_size,
+        shuffle=True,
+        num_workers=args.n_workers,
+    )
+    max_pred_length = (65 // args.step_length) - 2  # 19
+    val_loader = torch.utils.data.DataLoader(
+        WeatherDataset(
+            config_loader.dataset.name,
+            pred_length=max_pred_length,
+            split="val",
+            subsample_step=args.step_length,
+            subset=bool(args.subset_ds),
+            control_only=args.control_only,
+        ),
+        args.batch_size,
+        shuffle=False,
         num_workers=args.n_workers,
     )
 
@@ -222,24 +267,15 @@ def main():
     model_class = MODELS[args.model]
     model = model_class(args)
 
-    result = utils.init_wandb(args)
-
-    if result is not None:
-        logger = result
-        checkpoint_dir = logger.experiment.dir
-    else:
-        logger = None
-        checkpoint_dir = "lightning_logs"
-
-    # Ensure the checkpoint directory exists
-    os.makedirs(checkpoint_dir, exist_ok=True)
-
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        dirpath=checkpoint_dir,
-        filename="{epoch}",
-        every_n_epochs=1,
-        save_on_train_epoch_end=True,
-        verbose=True,
+        dirpath=f"saved_models/{run_name}",
+        filename="min_val_loss",
+        monitor="val_mean_loss",
+        mode="min",
+        save_last=True,
+    )
+    logger = pl.loggers.WandbLogger(
+        project=args.wandb_project, name=run_name, config=args
     )
     if args.eval:
         use_distributed_sampler = False
@@ -283,20 +319,35 @@ def main():
     )
     # Only init once, on rank 0 only
     if trainer.global_rank == 0:
-        utils.init_wandb_metrics(logger)  # Do after wandb.init
+        utils.init_wandb_metrics(
+            logger, args.val_steps_to_log
+        )  # Do after wandb.init
 
-    # Check if the mode is evaluation (either 'val' or 'test')
-    if args.eval in ["val", "test"]:
-        data_module.split = args.eval
-        trainer.test(model=model, datamodule=data_module, ckpt_path=args.load)
+    if args.eval:
+        if args.eval == "val":
+            eval_loader = val_loader
+        else:  # Test
+            eval_loader = torch.utils.data.DataLoader(
+                WeatherDataset(
+                    config_loader.dataset.name,
+                    pred_length=max_pred_length,
+                    split="test",
+                    subsample_step=args.step_length,
+                    subset=bool(args.subset_ds),
+                ),
+                args.batch_size,
+                shuffle=False,
+                num_workers=args.n_workers,
+            )
 
-    # Check if the mode is prediction
-    elif args.eval == "predict":
-        data_module.split = "predict"
-        trainer.predict(
+        print(f"Running evaluation on {args.eval}")
+        trainer.test(model=model, dataloaders=eval_loader, ckpt_path=args.load)
+    else:
+        # Train model
+        trainer.fit(
             model=model,
-            datamodule=data_module,
-            return_predictions=True,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
             ckpt_path=args.load,
         )
     # Default mode is training

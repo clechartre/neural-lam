@@ -10,6 +10,7 @@ test_*.sh
 lightning_logs
 .vscode
 outputs
+.vscode
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

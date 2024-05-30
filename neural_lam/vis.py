@@ -10,12 +10,11 @@ import xarray as xr
 from tqdm import tqdm
 
 # First-party
-from neural_lam import constants, utils
-from neural_lam.weather_dataset import WeatherDataModule
+from neural_lam import utils
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def plot_error_map(errors, global_mean, step_length=1, title=None):
+def plot_error_map(errors, data_config, title=None, step_length=3):
     """
     Plot a heatmap of errors of different variables at different
     predictions horizons
@@ -64,7 +63,7 @@ def plot_error_map(errors, global_mean, step_length=1, title=None):
             f"{f'{z:02}' if constants.IS_3D[name] else ''}"
         )
         for name, unit in zip(
-            constants.PARAM_NAMES_SHORT, constants.PARAM_UNITS
+            data_config.dataset.var_names, data_config.dataset.var_units
         )
         for z in (constants.VERTICAL_LEVELS if constants.IS_3D[name] else [0])
     ]
@@ -78,7 +77,9 @@ def plot_error_map(errors, global_mean, step_length=1, title=None):
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def plot_prediction(pred, target, title=None, vrange=None):
+def plot_prediction(
+    pred, target, obs_mask, data_config, title=None, vrange=None
+):
     """
     Plot example prediction and grond truth.
     Each has shape (N_grid,)
@@ -90,27 +91,29 @@ def plot_prediction(pred, target, title=None, vrange=None):
     else:
         vmin, vmax = vrange[0].cpu().item(), vrange[1].cpu().item()
 
-    # get test data
-    data_latlon = xr.open_zarr(constants.EXAMPLE_FILE, consolidated=True).isel(
-        time=0
-    )
-    lon, lat = data_latlon.lon.values.T, data_latlon.lat.values.T
+    # Set up masking of border region
+    mask_reshaped = obs_mask.reshape(*data_config.grid_shape_state)
+    pixel_alpha = (
+        mask_reshaped.clamp(0.7, 1).cpu().numpy()
+    )  # Faded border region
 
     fig, axes = plt.subplots(
-        2,
         1,
-        figsize=constants.FIG_SIZE,
-        subplot_kw={"projection": constants.SELECTED_PROJ},
+        2,
+        figsize=(13, 7),
+        subplot_kw={"projection": data_config.coords_projection},
     )
 
     # Plot pred and target
     for ax, data in zip(axes, (target, pred)):
-        data_grid = data.reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
-        contour_set = ax.contourf(
-            lon,
-            lat,
+        ax.coastlines()  # Add coastline outlines
+        data_grid = data.reshape(*data_config.grid_shape_state).cpu().numpy()
+        im = ax.imshow(
             data_grid,
-            transform=constants.SELECTED_PROJ,
+            origin="lower",
+            alpha=pixel_alpha,
+            vmin=vmin,
+            vmax=vmax,
             cmap="plasma",
             levels=np.linspace(vmin, vmax, num=100),
         )
@@ -136,7 +139,7 @@ def plot_prediction(pred, target, title=None, vrange=None):
 
 
 @matplotlib.rc_context(utils.fractional_plot_bundle(1))
-def plot_spatial_error(error, title=None, vrange=None):
+def plot_spatial_error(error, obs_mask, data_config, title=None, vrange=None):
     """
     Plot errors over spatial map
     Error and obs_mask has shape (N_grid,)
@@ -148,22 +151,28 @@ def plot_spatial_error(error, title=None, vrange=None):
     else:
         vmin, vmax = vrange[0].cpu().item(), vrange[1].cpu().item()
 
-    # get test data
-    data_latlon = xr.open_zarr(constants.EXAMPLE_FILE).isel(time=0)
-    lon, lat = data_latlon.lon.values.T, data_latlon.lat.values.T
+    # Set up masking of border region
+    mask_reshaped = obs_mask.reshape(*data_config.grid_shape_state)
+    pixel_alpha = (
+        mask_reshaped.clamp(0.7, 1).cpu().numpy()
+    )  # Faded border region
 
     fig, ax = plt.subplots(
-        figsize=constants.FIG_SIZE,
-        subplot_kw={"projection": constants.SELECTED_PROJ},
+        figsize=(5, 4.8),
+        subplot_kw={"projection": data_config.coords_projection},
     )
 
-    error_grid = error.reshape(*constants.GRID_SHAPE[::-1]).cpu().numpy()
+    ax.coastlines()  # Add coastline outlines
+    error_grid = error.reshape(*data_config.grid_shape_state).cpu().numpy()
 
     contour_set = ax.contourf(
         lon,
         lat,
         error_grid,
-        transform=constants.SELECTED_PROJ,
+        origin="lower",
+        alpha=pixel_alpha,
+        vmin=vmin,
+        vmax=vmax,
         cmap="OrRd",
         levels=np.linspace(vmin, vmax, num=100),
     )
